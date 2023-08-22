@@ -1,0 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+name: blaser_2_0_ref
+model_type: blaser
+model_arch: basic_ref
+checkpoint: "https://huggingface.co/facebook/blaser-2.0-ref/resolve/main/model.pt"

@@ -1,0 +1,13 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
+model_name: sonar_speech_encoder
+model_type: sonar_speech
+model_arch: non_english
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.kan.pt"
+default_lang: kan
+langs:
+  - kan

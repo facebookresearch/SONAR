@@ -1,0 +1,113 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: Python package
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  linter:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8"]
+
+    steps:
+    - uses: actions/checkout@v3        
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+    - name: Install dependencies
+      run: |
+        sudo apt-get install libsndfile1
+        python -m pip install --upgrade pip
+        pip config set global.extra-index-url https://test.pypi.org/simple/
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: isort
+      run: isort --check --diff .
+    - name: black
+      run: black --check --diff .
+
+  mypy:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8"]
+    steps:
+    - uses: actions/checkout@v3        
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+    - name: Install dependencies
+      run: |
+        sudo apt-get install libsndfile1
+        python -m pip install --upgrade pip
+        pip config set global.extra-index-url https://test.pypi.org/simple/
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    - name: mypy
+      run: mypy --install-types --non-interactive ./ --cache-dir=.mypy_cache/
+
+  unit_test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8"]
+    steps:
+    - uses: actions/checkout@v3        
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+    - name: Install dependencies
+      run: |
+        sudo apt-get install libsndfile1
+        python -m pip install --upgrade pip
+        pip config set global.extra-index-url https://test.pypi.org/simple/
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    - name: pytest_unit
+      run: pytest tests/unit_tests/
+
+  integration_test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8"]
+    timeout-minutes: 40
+    steps:
+    - uses: actions/checkout@v3        
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+    - name: Install dependencies
+      run: |
+        sudo apt-get install libsndfile1
+        python -m pip install --upgrade pip
+        pip config set global.extra-index-url https://test.pypi.org/simple/
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    - name: pytest_integration
+      run: pytest tests/integration_tests/  --ignore-glob='*sonar*.py'
