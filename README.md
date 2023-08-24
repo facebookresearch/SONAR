@@ -31,7 +31,8 @@ The full list of supported languages (along with download links) can be found he
 
 You can install SONAR with `pip install sonar-space`. Note that there is another `sonar` package on pip that IS NOT this project, make sure to use `sonar-space` in your dependencies.
 
-If you want to install SONAR manually, you can install it locally. SONAR depends mainly on [Fairseq2](https://github.com/fairinternal/fairseq2) and can be installed using (tested with `python=3.8`)
+If you want to install SONAR manually, you can install it localy. SONAR depends mainly on [Fairseq2](https://github.com/facebookresearch/fairseq2) and can be installed using (tested with `python=3.8`)
+
 ```bash
 pip install --upgrade pip
 pip install -e .
