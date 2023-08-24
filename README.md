@@ -32,12 +32,13 @@ The full list of supported languages (along with download links) can be found he
 You can install SONAR with `pip install sonar-space`. Note that there is another `sonar` package on pip that IS NOT this project, make sure to use `sonar-space` in your dependencies.
 
 If you want to install SONAR manually, you can install it localy. SONAR depends mainly on [Fairseq2](https://github.com/facebookresearch/fairseq2) and can be installed using (tested with `python=3.8`)
+
 ```bash
 pip install --upgrade pip
 pip install -e .
 ```
 
-If fairseq2 does not provide a build for your machine, check the readme of that project to build it localy.
+If fairseq2 does not provide a build for your machine, check the readme of that project to build it locally.
 
 ## Usage
 fairseq2 will automatically download models into your `$TORCH_HOME/hub` directory upon using the commands below.
