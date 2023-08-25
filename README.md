@@ -209,7 +209,7 @@ Please cite the paper when referencing the SONAR embedding space, encoders and d
   title = {{SONAR:} Sentence-Level Multimodal and Language-Agnostic Representations},
   publisher = {arXiv},
   year = {2023},
-  url = {https://arxiv.org/abs/unk},
+  url = {https://arxiv.org/abs/2308.11466},
 }
 ```
 
