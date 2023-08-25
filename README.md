@@ -23,7 +23,7 @@ The full list of supported languages (along with download links) can be found he
 
 ## Speech results
 <p align="center">
-  <img src="materials/sonar_langs.jpg" width="400"><br />
+  <img src="materials/sonar_langs.png" width="400"><br />
 </p>
 
 
