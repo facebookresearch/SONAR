@@ -77,7 +77,7 @@ class SonarTextTransformerEncoderModel(SonarEncoderModel):
         """
 
         if padding_mask is None:
-            padding_mask = torch.zeros(seqs.shape[:2])
+            padding_mask = torch.zeros(seqs.shape[:2], device=seqs.device)
 
         if pooling == Pooling.LAST:
             seq_length = compute_seq_length(padding_mask, _neg_inf)
