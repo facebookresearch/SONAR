@@ -28,7 +28,7 @@ class Laser2Config:
 
 laser2_archs = ArchitectureRegistry[Laser2Config]("lstm")
 
-laser2_arch = laser2_archs.marker
+laser2_arch = laser2_archs.decorator
 
 
 @laser2_arch("laser2")
@@ -52,6 +52,7 @@ class Laser2Builder:
     def __init__(
         self,
         config: Laser2Config,
+        *,
         device: Optional[Device] = None,
         dtype: Optional[DataType] = None,
     ) -> None:
@@ -83,6 +84,7 @@ class Laser2Builder:
 
 def create_laser2_model(
     config: Laser2Config,
+    *,
     device: Optional[Device] = None,
     dtype: Optional[DataType] = None,
 ) -> LaserLstmEncoder:
@@ -94,4 +96,4 @@ def create_laser2_model(
     :param dtype:
         The data type of module parameters and buffers.
     """
-    return Laser2Builder(config, device, dtype).build_model()
+    return Laser2Builder(config, device=device, dtype=dtype).build_model()

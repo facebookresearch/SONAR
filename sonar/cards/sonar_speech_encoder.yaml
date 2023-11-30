@@ -1,0 +1,523 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
+name: sonar_speech_encoder_base
+model_type: sonar_speech
+model_arch: non_english
+
+---
+
+name: sonar_speech_encoder_arb
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.arb.pt"
+default_lang: arb
+langs:
+  - arb
+
+---
+
+name: sonar_speech_encoder_cat
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.cat.pt"
+default_lang: cat
+langs:
+  - cat
+
+---
+
+name: sonar_speech_encoder_cym
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.cym.pt"
+default_lang: cym
+langs:
+  - cym
+
+---
+
+name: sonar_speech_encoder_dan
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.dan.pt"
+default_lang: dan
+langs:
+  - dan
+
+---
+
+name: sonar_speech_encoder_deu
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.deu.pt"
+default_lang: deu
+langs:
+  - deu
+
+---
+
+name: sonar_speech_encoder_eng
+base: sonar_speech_encoder_base
+model_arch: english
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.eng.pt"
+default_lang: eng
+langs:
+  - eng
+
+---
+
+name: sonar_speech_encoder_est
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.est.pt"
+default_lang: est
+langs:
+  - est
+
+---
+
+name: sonar_speech_encoder_fin
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.fin.pt"
+default_lang: fin
+langs:
+  - fin
+
+---
+
+name: sonar_speech_encoder_fra
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.fra.pt"
+default_lang: fra
+langs:
+  - fra
+
+---
+
+name: sonar_speech_encoder_ind
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.ind.pt"
+default_lang: ind
+langs:
+  - ind
+
+---
+
+name: sonar_speech_encoder_ita
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.ita.pt"
+default_lang: ita
+langs:
+  - ita
+
+---
+
+name: sonar_speech_encoder_kor
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.kor.pt"
+default_lang: kor
+langs:
+   - kor
+
+---
+
+name: sonar_speech_encoder_nld
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.nld.pt"
+default_lang: nld
+langs:
+  - nld
+
+---
+
+name: sonar_speech_encoder_pes
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.pes.pt"
+default_lang: pes
+langs:
+  - pes
+
+---
+
+name: sonar_speech_encoder_por
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.por.pt"
+default_lang: por
+langs:
+  - por
+
+---
+
+name: sonar_speech_encoder_ron
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.ron.pt"
+default_lang: ron
+langs:
+  - ron
+
+---
+
+name: sonar_speech_encoder_spa
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.spa.pt"
+default_lang: spa
+langs:
+  - spa
+
+---
+
+name: sonar_speech_encoder_swh
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.swh.pt"
+default_lang: swh
+langs:
+  - swh
+
+---
+
+name: sonar_speech_encoder_tgl
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.tgl.pt"
+default_lang: tgl
+langs:
+  - tgl
+
+---
+
+name: sonar_speech_encoder_tur
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.tur.pt"
+default_lang: tur
+langs:
+  - tur
+
+---
+
+name: sonar_speech_encoder_uzn
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.uzn.pt"
+default_lang: uzn
+langs:
+  - uzn
+
+---
+
+name: sonar_speech_encoder_asm
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.asm.pt"
+default_lang: asm
+langs:
+   - asm
+
+---
+
+name: sonar_speech_encoder_bel
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.bel.pt"
+default_lang: bel
+langs:
+   - bel
+
+---
+
+name: sonar_speech_encoder_ben
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.ben.pt"
+default_lang: ben
+langs:
+   - ben
+
+---
+
+name: sonar_speech_encoder_bos
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.bos.pt"
+default_lang: bos
+langs:
+   - bos
+
+---
+
+name: sonar_speech_encoder_bul
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.bul.pt"
+default_lang: bul
+langs:
+   - bul
+
+---
+
+name: sonar_speech_encoder_ces
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.ces.pt"
+default_lang: ces
+langs:
+   - ces
+
+---
+
+name: sonar_speech_encoder_cmn
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.cmn.pt"
+default_lang: cmn
+langs:
+   - cmn
+
+---
+
+name: sonar_speech_encoder_guj
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.guj.pt"
+default_lang: guj
+langs:
+   - guj
+
+---
+
+name: sonar_speech_encoder_heb
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.heb.pt"
+default_lang: heb
+langs:
+   - heb
+
+---
+
+name: sonar_speech_encoder_hin
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.hin.pt"
+default_lang: hin
+langs:
+   - hin
+
+---
+
+name: sonar_speech_encoder_hrv
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.hrv.pt"
+default_lang: hrv
+langs:
+   - hrv
+
+---
+
+name: sonar_speech_encoder_jpn
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.jpn.pt"
+default_lang: jpn
+langs:
+   - jpn
+
+---
+
+name: sonar_speech_encoder_kan
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.kan.pt"
+default_lang: kan
+langs:
+   - kan
+
+---
+
+name: sonar_speech_encoder_lao
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.lao.pt"
+default_lang: lao
+langs:
+   - lao
+
+---
+
+name: sonar_speech_encoder_lit
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.lit.pt"
+default_lang: lit
+langs:
+   - lit
+
+---
+
+name: sonar_speech_encoder_lvs
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.lvs.pt"
+default_lang: lvs
+langs:
+   - lvs
+
+---
+
+name: sonar_speech_encoder_mal
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.mal.pt"
+default_lang: mal
+langs:
+   - mal
+
+---
+
+name: sonar_speech_encoder_mar
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.mar.pt"
+default_lang: mar
+langs:
+   - mar
+
+---
+
+name: sonar_speech_encoder_mkd
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.mkd.pt"
+default_lang: mkd
+langs:
+   - mkd
+
+---
+
+name: sonar_speech_encoder_mlt
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.mlt.pt"
+default_lang: mlt
+langs:
+   - mlt
+
+---
+
+name: sonar_speech_encoder_npi
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.npi.pt"
+default_lang: npi
+langs:
+   - npi
+
+---
+
+name: sonar_speech_encoder_ory
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.ory.pt"
+default_lang: ory
+langs:
+   - ory
+
+---
+
+name: sonar_speech_encoder_pan
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.pan.pt"
+default_lang: pan
+langs:
+   - pan
+
+---
+
+name: sonar_speech_encoder_pol
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.pol.pt"
+default_lang: pol
+langs:
+   - pol
+
+---
+
+name: sonar_speech_encoder_rus
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.rus.pt"
+default_lang: rus
+langs:
+   - rus
+
+---
+
+name: sonar_speech_encoder_slk
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.slk.pt"
+default_lang: slk
+langs:
+   - slk
+
+---
+
+name: sonar_speech_encoder_slv
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.slv.pt"
+default_lang: slv
+langs:
+   - slv
+
+---
+
+name: sonar_speech_encoder_snd
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.snd.pt"
+default_lang: snd
+langs:
+   - snd
+
+---
+
+name: sonar_speech_encoder_srp
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.srp.pt"
+default_lang: srp
+langs:
+   - srp
+
+---
+
+name: sonar_speech_encoder_tam
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.tam.pt"
+default_lang: tam
+langs:
+   - tam
+
+---
+
+name: sonar_speech_encoder_tel
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.tel.pt"
+default_lang: tel
+langs:
+   - tel
+
+---
+
+name: sonar_speech_encoder_tha
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.tha.pt"
+default_lang: tha
+langs:
+   - tha
+
+---
+
+name: sonar_speech_encoder_ukr
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.ukr.pt"
+default_lang: ukr
+langs:
+   - ukr
+
+---
+
+name: sonar_speech_encoder_urd
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.urd.pt"
+default_lang: urd
+langs:
+   - urd
+
+---
+
+name: sonar_speech_encoder_vie
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.vie.pt"
+default_lang: vie
+langs:
+   - vie
+
+---
+
+name: sonar_speech_encoder_yue
+base: sonar_speech_encoder_base
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.yue.pt"
+default_lang: yue
+langs:
+   - yue

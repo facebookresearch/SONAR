@@ -56,7 +56,7 @@ class TestSonarTextClass:
         decoder = self.text2text.model.decoder
         dummy_prev_output_tokens = torch.Tensor([[3, 333]]).int()
         seqs, padding_mask = decoder.decoder_frontend(
-            dummy_prev_output_tokens, seq_lens=None
+            dummy_prev_output_tokens, padding_mask=None
         )
 
         decoder_output, decoder_padding_mask = decoder.decoder(

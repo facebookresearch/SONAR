@@ -1,5 +1,7 @@
-fairseq2==0.1.0
+fairseq2==0.2.*
 numpy>=1.21
 torch
 torchaudio
+sox
+soundfile
 tqdm

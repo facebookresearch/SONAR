@@ -8,16 +8,16 @@ from pathlib import Path
 from typing import List, Sequence, Union
 
 import torch
-from fairseq2.data import Collater
+from fairseq2.data import Collater, StringLike
 from fairseq2.data.cstring import CString
 from fairseq2.data.data_pipeline import read_sequence
 from fairseq2.data.text import TextTokenizer, read_text
-from fairseq2.generation import TextTranslator
+from fairseq2.generation import BeamSearchSeq2SeqGenerator, TextTranslator
 from fairseq2.models.transformer import TransformerDecoderModel
 from fairseq2.typing import Device
 
 from sonar.inference_pipelines.utils import extract_sequence_batch
-from sonar.models import SonarEncoderModel, SonarEncoderOutput
+from sonar.models.encoder_model import SonarEncoderModel, SonarEncoderOutput
 from sonar.models.sonar_text import (
     load_sonar_text_decoder_model,
     load_sonar_text_encoder_model,
@@ -69,12 +69,18 @@ class TextToTextModelPipeline(torch.nn.Module):
         target_lang: str,
         batch_size: int = 5,
     ) -> List[str]:
+        generator = BeamSearchSeq2SeqGenerator(self.model)
         translator = TextTranslator(
-            model=self.model,
+            generator,
             tokenizer=self.tokenizer,
             source_lang=source_lang,
             target_lang=target_lang,
         )
+
+        def _do_translate(src_texts: List[StringLike]) -> List[StringLike]:
+            texts, _ = translator.batch_translate(src_texts)
+            return texts
+
         pipeline = (
             (
                 read_text(input)
@@ -82,7 +88,7 @@ class TextToTextModelPipeline(torch.nn.Module):
                 else read_sequence(input)
             )
             .bucket(batch_size)
-            .map(translator)
+            .map(_do_translate)
             .and_return()
         )
 

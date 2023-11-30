@@ -40,8 +40,10 @@ class BlaserConfig:
 
 blaser_archs = ArchitectureRegistry[BlaserConfig]("blaser")
 
+blaser_arch = blaser_archs.decorator
 
-@blaser_archs.marker("basic_ref")
+
+@blaser_arch("basic_ref")
 def _arch_blaser_basic_ref() -> BlaserConfig:
     return BlaserConfig(
         embedding_dim=1024,
@@ -55,7 +57,7 @@ def _arch_blaser_basic_ref() -> BlaserConfig:
     )
 
 
-@blaser_archs.marker("basic_qe")
+@blaser_arch("basic_qe")
 def _arch_blaser_basic_qe() -> BlaserConfig:
     return BlaserConfig(
         embedding_dim=1024,
@@ -77,6 +79,7 @@ class BlaserBuilder:
     def __init__(
         self,
         config: BlaserConfig,
+        *,
         device: Optional[Device] = None,
         dtype: Optional[DataType] = None,
     ) -> None:
@@ -100,6 +103,7 @@ class BlaserBuilder:
 
 def create_blaser_model(
     config: BlaserConfig,
+    *,
     device: Optional[Device] = None,
     dtype: Optional[DataType] = None,
 ) -> BlaserModel:
@@ -111,4 +115,4 @@ def create_blaser_model(
     :param dtype:
         The data type of module parameters and buffers.
     """
-    return BlaserBuilder(config, device, dtype).build_model()
+    return BlaserBuilder(config, device=device, dtype=dtype).build_model()

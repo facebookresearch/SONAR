@@ -4,8 +4,10 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import tempfile
 
+import pytest
 import torch
 from fairseq2.data import Collater, text
 from torch.testing import assert_close
@@ -36,7 +38,7 @@ def test_load_laser2_text() -> None:
             text.read_text(tmp.name, rtrim=True, ltrim=True, memory_map=True)
             .map(encoder)
             .bucket(len(sentences), drop_remainder=True)
-            .map(Collater(pad_idx=1))
+            .map(Collater(pad_value=1))
             .and_return()
         )
         tokenized_sentences = next(iter(pipeline))
