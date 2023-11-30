@@ -6,15 +6,15 @@
 
 from typing import Optional, Tuple
 
-import torch
 from fairseq2.models.sequence import SequenceBatch
-from fairseq2.models.transformer.frontend import TransformerFrontend
+from fairseq2.models.transformer import TransformerFrontend
 from fairseq2.nn.normalization import LayerNorm
+from fairseq2.nn.padding import PaddingMask
 from fairseq2.nn.transformer import TransformerEncoder
 from torch import Tensor
 from torch.nn import Dropout
 
-from sonar.models import SonarEncoderModel, SonarEncoderOutput
+from sonar.models.encoder_model import SonarEncoderModel, SonarEncoderOutput
 from sonar.nn.encoder_pooler import EncoderOutputPooler
 
 
@@ -57,7 +57,7 @@ class SonarSpeechEncoderModel(SonarEncoderModel):
         self.encoder_pooler = encoder_pooler
 
     def forward(self, batch: SequenceBatch) -> SonarEncoderOutput:
-        seqs, padding_mask = self.encoder_frontend(batch.seqs, batch.seq_lens)
+        seqs, padding_mask = self.encoder_frontend(batch.seqs, batch.padding_mask)
         encoder_output, encoder_padding_mask = self.encoder(seqs, padding_mask)
 
         # This is the workaround for the pre-LN issue of redundant LayerNorm.
@@ -77,9 +77,9 @@ class SonarSpeechEncoderModel(SonarEncoderModel):
         )
 
     def encode(
-        self, seqs: torch.Tensor, seq_lens: Optional[torch.Tensor]
+        self, seqs: Tensor, padding_mask: Optional[PaddingMask]
     ) -> Tuple[Tensor, Optional[Tensor]]:
-        sonar_output_encoder = self.encoder(seqs, seq_lens)
+        sonar_output_encoder = self.encoder(seqs, padding_mask)
         return (
             sonar_output_encoder.sentence_embeddings.unsqueeze(1),
             None,

@@ -15,7 +15,7 @@ from fairseq2.models.utils.arch_registry import ArchitectureRegistry
 from fairseq2.models.w2vbert import w2vbert_archs
 from fairseq2.models.wav2vec2 import Wav2Vec2EncoderBuilder, Wav2Vec2EncoderConfig
 from fairseq2.nn import Linear
-from fairseq2.nn.embedding import Embedding
+from fairseq2.nn.embedding import Embedding, StandardEmbedding, init_scaled_embedding
 from fairseq2.nn.normalization import LayerNorm
 from fairseq2.nn.position_encoder import PositionEncoder, SinusoidalPositionEncoder
 from fairseq2.nn.transformer import TransformerNormOrder
@@ -29,7 +29,7 @@ from fairseq2.nn.transformer.decoder_layer import (
     TransformerDecoderLayer,
 )
 from fairseq2.nn.transformer.ffn import FeedForwardNetwork, StandardFeedForwardNetwork
-from fairseq2.nn.transformer.layer_norm import create_default_layer_norm
+from fairseq2.nn.transformer.layer_norm import create_standard_layer_norm
 from fairseq2.nn.transformer.multihead_attention import (
     MultiheadAttention,
     StandardMultiheadAttention,
@@ -79,7 +79,8 @@ class SonarSpeechEncoderConfig:
 
 
 sonar_speech_archs = ArchitectureRegistry[SonarSpeechEncoderConfig]("sonar_speech")
-sonar_speech_arch = sonar_speech_archs.marker
+
+sonar_speech_arch = sonar_speech_archs.decorator
 
 
 @sonar_speech_arch("english")
@@ -137,6 +138,7 @@ class SonarSpeechEncoderBuilder:
         self,
         config: SonarSpeechEncoderConfig,
         w2v2_encoder_builder: Wav2Vec2EncoderBuilder,
+        *,
         device: Optional[Device] = None,
         dtype: Optional[DataType] = None,
     ) -> None:
@@ -196,11 +198,11 @@ class SonarSpeechEncoderBuilder:
 
     def build_embedding(self) -> Embedding:
         """Build an embedding table."""
-        return Embedding(
+        return StandardEmbedding(
             num_embeddings=self.config.w2v2_encoder_config.model_dim,
             embedding_dim=self.config.model_dim,
             pad_idx=self.config.pad_idx,
-            scaled=True,
+            init_fn=init_scaled_embedding,
         )
 
     def build_decoder(self) -> TransformerDecoder:
@@ -240,6 +242,7 @@ class SonarSpeechEncoderBuilder:
         return StandardFeedForwardNetwork(
             self.config.model_dim,
             self.config.ffn_inner_dim,
+            bias=True,
             norm_order=self.config.decoder_norm_order,
         )
 
@@ -248,7 +251,7 @@ class SonarSpeechEncoderBuilder:
         if not self.config.w2v2_encoder_config.use_conformer:
             return None
 
-        return create_default_layer_norm(
+        return create_standard_layer_norm(
             self.config.w2v2_encoder_config.model_dim,
         )
 
@@ -263,6 +266,7 @@ class SonarSpeechEncoderBuilder:
 
 def create_sonar_speech_encoder_model(
     config: SonarSpeechEncoderConfig,
+    *,
     device: Optional[Device] = None,
     dtype: Optional[DataType] = None,
 ) -> SonarSpeechEncoderModel:
@@ -276,11 +280,11 @@ def create_sonar_speech_encoder_model(
         The data type of module parameters and buffers.
     """
     w2v2_encoder_builder = Wav2Vec2EncoderBuilder(
-        config.w2v2_encoder_config, device, dtype
+        config.w2v2_encoder_config, device=device, dtype=dtype
     )
 
     sonar_builder = SonarSpeechEncoderBuilder(
-        config, w2v2_encoder_builder, device, dtype
+        config, w2v2_encoder_builder, device=device, dtype=dtype
     )
 
     return sonar_builder.build_model()

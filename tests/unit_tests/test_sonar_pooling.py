@@ -5,16 +5,16 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
+from fairseq2.nn.padding import PaddingMask
 from torch.testing import assert_close  # type: ignore
 
-from sonar.models.sonar_text.model import _neg_inf  # type: ignore
 from sonar.models.sonar_text.model import Pooling, SonarTextTransformerEncoderModel
 
 pooling_method = SonarTextTransformerEncoderModel.sentence_embedding_pooling
 
 
 def test_pooling_max() -> None:
-    padding_mask = torch.Tensor([[0, 0, _neg_inf], [0, _neg_inf, _neg_inf]])
+    padding_mask = PaddingMask(torch.tensor([2, 1]), batch_seq_len=3)
     seqs = torch.Tensor(
         [[[7, 2], [3, 4], [10, 20]], [[-1, -2], [100, 1000], [-10, -20]]]
     )
@@ -27,7 +27,7 @@ def test_pooling_max() -> None:
 
 
 def test_pooling_mean() -> None:
-    padding_mask = torch.Tensor([[0, 0, _neg_inf], [0, _neg_inf, _neg_inf]])
+    padding_mask = PaddingMask(torch.tensor([2, 1]), batch_seq_len=3)
     seqs = torch.Tensor(
         [[[7, 2], [3, 4], [10, 20]], [[-1, -2], [100, 1000], [-10, -20]]]
     )
@@ -40,7 +40,7 @@ def test_pooling_mean() -> None:
 
 
 def test_pooling_last() -> None:
-    padding_mask = torch.Tensor([[0, 0, _neg_inf], [0, _neg_inf, _neg_inf]])
+    padding_mask = PaddingMask(torch.tensor([2, 1]), batch_seq_len=3)
     seqs = torch.Tensor(
         [[[7, 2], [3, 4], [10, 20]], [[-1, -2], [100, 1000], [-10, -20]]]
     )

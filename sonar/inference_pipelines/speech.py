@@ -6,6 +6,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import List, Optional, Sequence, Union, cast
 
@@ -20,14 +21,14 @@ from fairseq2.data import (
 from fairseq2.data.audio import AudioDecoder, WaveformToFbankConverter
 from fairseq2.data.data_pipeline import read_sequence
 from fairseq2.data.text import StrSplitter, TextTokenizer, read_text
-from fairseq2.generation import SequenceToTextGenerator
+from fairseq2.generation import BeamSearchSeq2SeqGenerator, SequenceToTextConverter
 from fairseq2.memory import MemoryBlock
 from fairseq2.models.sequence import SequenceBatch
 from fairseq2.models.transformer import TransformerDecoderModel
 from fairseq2.typing import DataType, Device
 
 from sonar.inference_pipelines.utils import extract_sequence_batch
-from sonar.models import SonarEncoderModel
+from sonar.models.encoder_model import SonarEncoderModel
 from sonar.models.sonar_speech.loader import load_sonar_speech_model
 from sonar.models.sonar_speech.model import SonarSpeechEncoderModel
 from sonar.models.sonar_text import load_sonar_text_decoder_model, load_sonar_tokenizer
@@ -62,7 +63,6 @@ class SpeechInferenceParams:
     device: Device = CPU_DEVICE
     """The device on which to run inference."""
 
-    # TODO: This will be soon auto-tuned. Right now hand-tuned for devfair.
     n_parallel: int = 4
     """Number of parallel calls when running the pipeline."""
 
@@ -133,7 +133,7 @@ class AudioToFbankDataPipelineBuilder(SpeechInferencePipeline):
         # Batch every `context.batch_size` line
         pipeline_builder.bucket(bucket_size=context.batch_size)
 
-        collate = Collater(pad_idx=context.pad_idx, pad_to_multiple=2)
+        collate = Collater(pad_value=context.pad_idx, pad_to_multiple=2)
 
         pipeline_builder.map(collate, num_parallel_calls=context.n_parallel)
 
@@ -247,15 +247,18 @@ class SpeechToTextPipeline(SpeechInferencePipeline):
 
     def prebuild_pipeline(self, context: SpeechInferenceParams) -> DataPipelineBuilder:
         assert context.target_lang is not None
-        generator = SequenceToTextGenerator(
-            self.model.to(context.device),
+        generator = BeamSearchSeq2SeqGenerator(self.model.to(context.device))
+        converter = SequenceToTextConverter(
+            generator,
             self.tokenizer,
+            task="translation",
             target_lang=context.target_lang,
         )
 
         def _do_generate(data: dict) -> List[StringLike]:
             batch = cast(SequenceBatch, data["fbank"])
-            return generator(batch.seqs, batch.seq_lens)
+            texts, _ = converter.batch_convert(batch.seqs, batch.padding_mask)
+            return texts
 
         return (
             self.audio_to_fbank_dp_builder.prebuild_pipeline(context)
@@ -272,7 +275,6 @@ class SpeechModelPipelineInterface(torch.nn.Module):
 
     def __init__(self, fbank_dtype: DataType) -> None:
         super().__init__()
-        self.decode_audio = AudioDecoder(dtype=fbank_dtype)
         self.convert_to_fbank = WaveformToFbankConverter(
             num_mel_bins=80,
             waveform_scale=2**15,
@@ -281,6 +283,12 @@ class SpeechModelPipelineInterface(torch.nn.Module):
             device=self.device,
             dtype=fbank_dtype,
         )
+        self._fbank_dtype = fbank_dtype
+
+    @property
+    @lru_cache(maxsize=10)
+    def audio_decoder(self):
+        return AudioDecoder(dtype=self._fbank_dtype)
 
     def _decode_audio(self, inp: Union[str, torch.Tensor]) -> dict:
         if isinstance(inp, torch.Tensor):
@@ -292,7 +300,7 @@ class SpeechModelPipelineInterface(torch.nn.Module):
         else:
             with Path(str(inp)).open("rb") as fb:
                 block = MemoryBlock(fb.read())
-            return self.decode_audio(block)  # type: ignore
+            return self.audio_decoder(block)  # type: ignore
 
 
 class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
@@ -329,6 +337,11 @@ class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
         self.tokenizer = tokenizer
         self.model = SonarEncoderDecoderModel(encoder, decoder).to(device).eval()
 
+        # Only quantize the model in CUDA to bypass the error "LayerNormKernelImpl" not implemented for 'Half'
+        # in some CUDAs and torch versions
+        if fbank_dtype == torch.float16 and device.type == "cuda":
+            self.model = self.model.half()
+
     @torch.inference_mode()
     def predict(
         self,
@@ -339,15 +352,18 @@ class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
         pad_idx: int = 0,
         n_prefetched_batches: int = 2,
     ) -> List[str]:
-        generator = SequenceToTextGenerator(
-            self.model.to(self.device),
+        generator = BeamSearchSeq2SeqGenerator(self.model.to(self.device))
+        converter = SequenceToTextConverter(
+            generator,
             self.tokenizer,
+            task="translation",
             target_lang=target_lang,
         )
 
         def _do_generate(data: dict) -> List[StringLike]:
             batch = cast(SequenceBatch, data["fbank"])
-            return generator(batch.seqs, batch.seq_lens)
+            texts, _ = converter.batch_convert(batch.seqs, batch.padding_mask)
+            return texts
 
         pipeline = (
             read_sequence(input)
@@ -355,7 +371,7 @@ class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
             .map(self.convert_to_fbank, num_parallel_calls=n_parallel)
             .bucket(bucket_size=batch_size)
             .map(
-                Collater(pad_idx=pad_idx, pad_to_multiple=2),
+                Collater(pad_value=pad_idx, pad_to_multiple=2),
                 num_parallel_calls=n_parallel,
             )
             .prefetch(n_prefetched_batches)
@@ -394,6 +410,11 @@ class SpeechToEmbeddingModelPipeline(SpeechModelPipelineInterface):
             encoder = load_sonar_speech_model(encoder, device=device, progress=False)
         self.model = encoder.to(device).eval()
 
+        # Only quantize the model in CUDA to bypass the error "LayerNormKernelImpl" not implemented for 'Half'
+        # in some CUDAs and torch versions
+        if fbank_dtype == torch.float16 and device.type == "cuda":
+            self.model = self.model.half()
+
     def build_predict_pipeline(
         self,
         input_pipeline,
@@ -407,7 +428,7 @@ class SpeechToEmbeddingModelPipeline(SpeechModelPipelineInterface):
             .map(self.convert_to_fbank, num_parallel_calls=n_parallel)
             .bucket(bucket_size=batch_size)
             .map(
-                Collater(pad_idx=pad_idx, pad_to_multiple=2),
+                Collater(pad_value=pad_idx, pad_to_multiple=2),
                 num_parallel_calls=n_parallel,
             )
             .prefetch(n_prefetched_batches)

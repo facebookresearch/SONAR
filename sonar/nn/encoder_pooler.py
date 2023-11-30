@@ -10,6 +10,7 @@ from typing import Optional
 import torch
 from fairseq2.models.transformer.frontend import TransformerFrontend
 from fairseq2.nn import Linear
+from fairseq2.nn.padding import PaddingMask
 from fairseq2.nn.transformer.decoder import TransformerDecoder
 from fairseq2.typing import Device
 from overrides import override
@@ -24,7 +25,7 @@ class EncoderOutputPooler(Module):
     def __call__(
         self,
         encoder_output: Tensor,
-        encoder_padding_mask: Optional[Tensor],
+        encoder_padding_mask: Optional[PaddingMask],
     ) -> Tensor:
         """Apply pooling on encoder_output
 
@@ -70,7 +71,7 @@ class AttentionEncoderOutputPooler(EncoderOutputPooler):
     def __call__(
         self,
         encoder_output: Tensor,
-        encoder_padding_mask: Optional[Tensor],
+        encoder_padding_mask: Optional[PaddingMask],
     ) -> Tensor:
         seqs = self._get_pooling_tokens(encoder_output.shape[0], encoder_output.device)
 

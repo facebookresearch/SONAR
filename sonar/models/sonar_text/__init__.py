@@ -35,13 +35,13 @@ from sonar.models.sonar_text.builder import (
     sonar_text_encoder_archs as sonar_text_encoder_archs,
 )
 from sonar.models.sonar_text.loader import (
-    SonarTextDecoderLoader as SonarTextDecoderLoader,
-)
-from sonar.models.sonar_text.loader import (
-    SonarTextEncoderLoader as SonarTextEncoderLoader,
+    load_sonar_text_decoder_config as load_sonar_text_decoder_config,
 )
 from sonar.models.sonar_text.loader import (
     load_sonar_text_decoder_model as load_sonar_text_decoder_model,
+)
+from sonar.models.sonar_text.loader import (
+    load_sonar_text_encoder_config as load_sonar_text_encoder_config,
 )
 from sonar.models.sonar_text.loader import (
     load_sonar_text_encoder_model as load_sonar_text_encoder_model,

@@ -4,11 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-
-name: sonar_basic_text_decoder
-model_type: transformer_decoder
+name: text_sonar_basic_encoder
+model_type: transformer_encoder
 model_arch: basic
-checkpoint: "https://dl.fbaipublicfiles.com/SONAR/finetuned_decoder.pt"
+checkpoint: "https://dl.fbaipublicfiles.com/SONAR/sonar_text_encoder.pt"
 tokenizer: "https://dl.fbaipublicfiles.com/SONAR/sentencepiece.source.256000.model"
 default_lang: eng_Latn
 langs:

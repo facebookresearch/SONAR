@@ -11,12 +11,12 @@ import torch
 from fairseq2.models.sequence import SequenceBatch
 from fairseq2.models.transformer.frontend import TransformerFrontend
 from fairseq2.nn.normalization import LayerNorm
+from fairseq2.nn.padding import PaddingMask, apply_padding_mask
 from fairseq2.nn.transformer import TransformerEncoder
 from overrides import final as finaloverride
 from torch import Tensor
 
-from sonar.models import SonarEncoderModel, SonarEncoderOutput
-from sonar.nn.utils import _neg_inf, compute_seq_length
+from sonar.models.encoder_model import SonarEncoderModel, SonarEncoderOutput
 
 
 class Pooling(Enum):
@@ -64,7 +64,7 @@ class SonarTextTransformerEncoderModel(SonarEncoderModel):
 
     @staticmethod
     def sentence_embedding_pooling(
-        seqs: Tensor, padding_mask: Optional[Tensor], pooling: Pooling
+        seqs: Tensor, padding_mask: Optional[PaddingMask], pooling: Pooling
     ) -> Tensor:
         """Deterministic pooling along sequence dimension to get a sentence representation
         Args:
@@ -75,27 +75,29 @@ class SonarTextTransformerEncoderModel(SonarEncoderModel):
         Returns:
             Tensor: bs x model_dim
         """
-
-        if padding_mask is None:
-            padding_mask = torch.zeros(seqs.shape[:2], device=seqs.device)
-
         if pooling == Pooling.LAST:
-            seq_length = compute_seq_length(padding_mask, _neg_inf)
-            sentence_embedding = seqs[
-                [torch.arange(seq_length.shape[0]), (seq_length - 1).clip_(0)]
-            ]
+            if padding_mask is None:
+                sentence_embedding = seqs[:, -1]
+            else:
+                seq_lens = padding_mask.seq_lens
+
+                sentence_embedding = seqs[
+                    [torch.arange(seq_lens.shape[0]), (seq_lens - 1).clip_(0)]
+                ]
         elif pooling == Pooling.MAX:
-            seqs = torch.clone(seqs)
-            seqs[padding_mask == _neg_inf] = _neg_inf
+            seqs = apply_padding_mask(seqs, padding_mask, pad_value=-torch.inf)
             sentence_embedding = seqs.max(dim=1).values
         elif pooling == Pooling.MEAN:
-            seqs = torch.clone(seqs)
-            seqs[padding_mask == _neg_inf] = 0
+            seqs = apply_padding_mask(seqs, padding_mask, pad_value=0)
             sentence_embedding = seqs.sum(dim=1)
-            weights = 1.0 / ((padding_mask != _neg_inf).float().sum(dim=1) + 1e-7)
-            sentence_embedding = torch.einsum(
-                "i...,i ->i...", sentence_embedding, weights
-            )
+            if padding_mask is None:
+                weights = 1.0 / (seqs.size(1) + 1e-7)
+                sentence_embedding = sentence_embedding * weights
+            else:
+                weights = 1.0 / (padding_mask.seq_lens.float() + 1e-7)
+                sentence_embedding = torch.einsum(
+                    "i...,i->i...", sentence_embedding, weights
+                )
         else:
             raise NotImplementedError(pooling)
 
@@ -103,7 +105,7 @@ class SonarTextTransformerEncoderModel(SonarEncoderModel):
 
     @finaloverride
     def forward(self, batch: SequenceBatch) -> SonarEncoderOutput:
-        embed_seqs, padding_mask = self.encoder_frontend(batch.seqs, batch.seq_lens)
+        embed_seqs, padding_mask = self.encoder_frontend(batch.seqs, batch.padding_mask)
 
         encoded_seqs, _ = self.encoder(embed_seqs, padding_mask)
 

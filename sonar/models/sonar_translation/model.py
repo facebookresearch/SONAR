@@ -9,9 +9,10 @@ from typing import Optional, Tuple, final
 from fairseq2.models.encoder_decoder import EncoderDecoderModel
 from fairseq2.models.sequence import SequenceBatch, SequenceModelOutput
 from fairseq2.models.transformer import TransformerDecoderModel
+from fairseq2.nn.padding import PaddingMask
 from torch import Tensor
 
-from sonar.models import SonarEncoderModel
+from sonar.models.encoder_model import SonarEncoderModel
 
 
 @final
@@ -30,7 +31,7 @@ class SonarEncoderDecoderModel(EncoderDecoderModel):
         encoder: SonarEncoderModel,
         decoder: TransformerDecoderModel,
     ) -> None:
-        super().__init__(model_dim=encoder.model_dim)
+        super().__init__(encoder.model_dim, decoder.vocab_info)
         if encoder.model_dim != decoder.model_dim:
             raise ValueError(
                 f"`model_dim` of `encoder` and `model_dim` of `decoder` must be equal, but are {encoder.model_dim} and {decoder.model_dim} instead."
@@ -39,27 +40,33 @@ class SonarEncoderDecoderModel(EncoderDecoderModel):
         self.decoder = decoder
 
     def encode(
-        self, seqs: Tensor, seq_lens: Optional[Tensor]
-    ) -> Tuple[Tensor, Optional[Tensor]]:
-        batch = SequenceBatch(seqs, seq_lens)
+        self, seqs: Tensor, padding_mask: Optional[PaddingMask]
+    ) -> Tuple[Tensor, Optional[PaddingMask]]:
+        batch = SequenceBatch(seqs, padding_mask)
         sonar_output_encoder = self.encoder(batch)
         return (sonar_output_encoder.sentence_embeddings.unsqueeze(1), None)
 
     def decode(
         self,
         seqs: Tensor,
-        seq_lens: Optional[Tensor],
+        padding_mask: Optional[PaddingMask],
         encoder_output: Tensor,
-        encoder_padding_mask: Optional[Tensor],
+        encoder_padding_mask: Optional[PaddingMask],
         state_bag=None,
-    ) -> Tuple[Tensor, Optional[Tensor]]:
-        seqs, padding_mask = self.decoder.decoder_frontend(seqs, seq_lens, state_bag)
+    ) -> Tuple[Tensor, Optional[PaddingMask]]:
+        seqs, padding_mask = self.decoder.decoder_frontend(
+            seqs, padding_mask, state_bag=state_bag
+        )
 
         return self.decoder.decoder(  # type: ignore[no-any-return]
-            seqs, padding_mask, encoder_output, encoder_padding_mask, state_bag
+            seqs,
+            padding_mask,
+            encoder_output,
+            encoder_padding_mask,
+            state_bag=state_bag,
         )
 
     def project(
-        self, decoder_output: Tensor, decoder_padding_mask: Optional[Tensor]
+        self, decoder_output: Tensor, decoder_padding_mask: Optional[PaddingMask]
     ) -> SequenceModelOutput:
         return self.decoder.project(decoder_output, decoder_padding_mask)

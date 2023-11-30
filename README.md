@@ -160,42 +160,62 @@ All 200 languages from the [No Language Left Behind project](https://arxiv.org/a
 | lang_code | language         | link                                                               |
 | --------- | ---------------- | ------------------------------------------------------------------ |
 | arb       | afrikaans        | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.arb.pt) |
-| ben       | bengali          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.ben.pt) |
+| asm       | assamese         | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.asm.pt) |
+| bel       | belarussian      | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.bel.pt) |
+| ben       | bengali          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.ben.pt) |
+| bos       | bosnian          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.bos.pt) |
+| bul       | bulgarian        | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.bul.pt) |
 | cat       | catalan          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.cat.pt) |
-| ces       | czech            | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.ces.pt) |
-| cmn       | mandarin chinese | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.cmn.pt) |
+| ces       | czech            | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.ces.pt) |
+| cmn       | mandarin chinese | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.cmn.pt) |
 | cym       | welsh            | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.cym.pt) |
 | dan       | danish           | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.dan.pt) |
 | deu       | german           | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.deu.pt) |
 | est       | estonian         | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.est.pt) |
 | fin       | finnish          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.fin.pt) |
 | fra       | french           | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.fra.pt) |
-| hin       | hindi            | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.hin.pt) |
+| guj       | gujurati         | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.guj.pt) |
+| heb       | hebrew           | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.heb.pt) |
+| hin       | hindi            | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.hin.pt) |
+| hrv       | croatian         | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.hrv.pt) |
 | ind       | indonesian       | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.ind.pt) |
 | ita       | italian          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.ita.pt) |
-| jpn       | japanse          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.jpn.pt) |
-| kan       | kannada          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.jan.pt) |
+| jpn       | japanse          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.jpn.pt) |
+| kan       | kannada          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.jan.pt) |
 | kor       | korean           | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.kor.pt) |
-| mlt       | maltese          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.mlt.pt) |
+| lao       | lao              | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.lao.pt) |
+| lit       | lithaian         | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.lit.pt) |
+| lvs       | standard latvian | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.lvs.pt) |
+| mal       | malayalam        | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.mal.pt) |
+| mar       | marathi          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.mar.pt) |
+| mkd       | macedonian       | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.mkd.pt) |
+| mlt       | maltese          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.mlt.pt) |
+| npi       | nepali           | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.npi.pt) |
 | nld       | dutch            | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.nld.pt) |
+| ory       | odia             | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.ory.pt) |
+| pan       | punjabi          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.pan.pt) |
 | pes       | western persian  | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.pes.pt) |
-| pol       | polish           | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.po.pt)  |
+| pol       | polish           | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.po.pt)  |
 | por       | portuguese       | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.por.pt) |
 | ron       | romanian         | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.ron.pt) |
-| rus       | russian          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.rus.pt) |
-| slk       | slovak           | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.slk.pt) |
+| rus       | russian          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.rus.pt) |
+| slk       | slovak           | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.slk.pt) |
+| slv       | slovenian        | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.slv.pt) |
+| snd       | sindhi           | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.snd.pt) |
+| srp       | serbian          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.srp.pt) |
 | spa       | spanish          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.spa.pt) |
 | swe       | swedish          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.swe.pt) |
 | swh       | swahili          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.swh.pt) |
-| tam       | tamil            | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.tam.pt) |
-| tel       | telugu           | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.tel.pt) |
+| tam       | tamil            | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.tam.pt) |
+| tel       | telugu           | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.tel.pt) |
 | tgl       | tagalog          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.tgl.pt) |
-| tha       | thai             | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.tha.pt) |
+| tha       | thai             | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.tha.pt) |
 | tur       | turkish          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.tur.pt) |
-| ukr       | ukrainian        | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.ukr.pt) |
-| urd       | urdu             | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.urd.pt) |
+| ukr       | ukrainian        | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.ukr.pt) |
+| urd       | urdu             | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.urd.pt) |
 | uzn       | northern uzbek   | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.uzn.pt) |
-| vie       | vietnamese       | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.vie.pt) |
+| vie       | vietnamese       | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.vie.pt) |
+| yue       | yue              | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.yue.pt) |
 
 </details>
 
@@ -219,4 +239,8 @@ See the [CONTRIBUTING](CONTRIBUTING.md) file for how to help out.
 
 ## License
 
-`SONAR` code and models are **CC-BY-NC-4.0** licensed. See [LICENSE.md](LICENSE.md).
+SONAR code is released under the MIT license (see [CODE_LICENSE](CODE_LICENSE.md)).
+
+Some of SONAR models are released with the same MIT license, BUT BEWARE, 
+some of them are released under a non commercial license (see [NC_MODEL_LICENSE](NC_MODEL_LICENSE.md)).
+Please refer to [LICENSE](LICENSE.md) for the details.
