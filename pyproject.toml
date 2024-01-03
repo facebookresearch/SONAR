@@ -14,8 +14,7 @@ keywords = ["sentence embeddings", "sentence representation", "sentence encoder"
             "sonar models", "speech2speech", "text2text", "speech2text",
             "text2speech", "multi-modal models", "multi-language models"]
 
-[tool.flit.module]
-name = "sonar"
+
 
 # zip_safe = false
 classifiers=[
@@ -32,6 +31,7 @@ dependencies = [
   "soundfile",
   "typing_extensions",
 ]
+
 
 [project.optional-dependencies]
   dev = [
@@ -51,6 +51,9 @@ dependencies = [
 [project.urls]
   Source = "https://github.com/facebookresearch/SONAR"
   Tracker = "https://github.com/facebookresearch/SONAR/issues"
+
+[tool.flit.module]
+name = "sonar"
 
 
 [tool.black]
