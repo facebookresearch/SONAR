@@ -4,7 +4,7 @@ Part of SONAR models are released with MIT license too:
 
 | lang_code | language         | url                                                               |
 | --------- | ---------------- | ------------------------------------------------------ |
-| arb       | afrikaans        | https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.arb.pt |
+| arb       | ms arabic        | https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.arb.pt |
 | cat       | catalan          | https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.cat.pt |
 | cym       | welsh            | https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.cym.pt |
 | dan       | danish           | https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.dan.pt |
