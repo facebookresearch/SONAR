@@ -159,7 +159,7 @@ All 200 languages from the [No Language Left Behind project](https://arxiv.org/a
 
 | lang_code | language         | link                                                               |
 | --------- | ---------------- | ------------------------------------------------------------------ |
-| arb       | afrikaans        | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.arb.pt) |
+| arb       | ms arabic        | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.arb.pt) |
 | asm       | assamese         | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.asm.pt) |
 | bel       | belarussian      | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.bel.pt) |
 | ben       | bengali          | [download](https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.ben.pt) |
