@@ -1,6 +1,6 @@
 SONAR code is released under the MIT license (see [CODE_LICENSE](CODE_LICENSE.md)).
 
-Part of SONAR models are released with MIT license too:
+Part of SONAR speech encoders are released with MIT license too:
 
 | lang_code | language         | url                                                               |
 | --------- | ---------------- | ------------------------------------------------------ |
@@ -27,7 +27,7 @@ Part of SONAR models are released with MIT license too:
 | uzn       | northern uzbek   | https://dl.fbaipublicfiles.com/SONAR/spenc.v3ap.uzn.pt |
 
 
-BUT BEWARE, the following models are released under a non commercial license (see [NC_MODEL_LICENSE](NC_MODEL_LICENSE.md)):
+BUT BEWARE, the following speech encoders are released under a non commercial license (see [NC_MODEL_LICENSE](NC_MODEL_LICENSE.md)):
 
 | lang_code | language         | url                                                   |
 | --------- | ---------------- | ------------------------------------------------------ |
@@ -68,3 +68,5 @@ BUT BEWARE, the following models are released under a non commercial license (se
 | vie       | vietnamese       | https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.vie.pt |
 | yue       | yue              | https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.yue.pt |
 
+The SONAR text encoder and decoder, as well as the BLASER 2.0 models, are released under the same non-commercial 
+license ([NC_MODEL_LICENSE](NC_MODEL_LICENSE.md)).

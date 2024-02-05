@@ -12,7 +12,7 @@ from pathlib import Path
 
 from fairseq2.assets import FileAssetMetadataProvider, asset_store
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 
 def _update_asset_store() -> None:

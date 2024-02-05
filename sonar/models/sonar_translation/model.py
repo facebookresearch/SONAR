@@ -12,7 +12,7 @@ from fairseq2.models.transformer import TransformerDecoderModel
 from fairseq2.nn.padding import PaddingMask
 from torch import Tensor
 
-from sonar.models.encoder_model import SonarEncoderModel
+from sonar.models.encoder_model import SonarEncoderModel, SonarEncoderOutput
 
 
 @final
@@ -70,3 +70,20 @@ class SonarEncoderDecoderModel(EncoderDecoderModel):
         self, decoder_output: Tensor, decoder_padding_mask: Optional[PaddingMask]
     ) -> SequenceModelOutput:
         return self.decoder.project(decoder_output, decoder_padding_mask)
+
+
+class DummyEncoderModel(SonarEncoderModel):
+    """Abstract class for both speech and text SONAR encoder models which does not modify its inputs."""
+
+    def forward(self, batch: SequenceBatch) -> SonarEncoderOutput:
+        """
+        :param batch:
+            The batch of sequences to process.
+        :returns:
+            SonarEncoderOutput
+        """
+        return SonarEncoderOutput(
+            encoded_seqs=batch.seqs,
+            sentence_embeddings=batch.seqs,  # reduce in dim 1
+            padding_mask=batch.padding_mask,
+        )

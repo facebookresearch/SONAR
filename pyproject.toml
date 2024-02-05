@@ -15,7 +15,6 @@ keywords = ["sentence embeddings", "sentence representation", "sentence encoder"
             "text2speech", "multi-modal models", "multi-language models"]
 
 
-
 # zip_safe = false
 classifiers=[
     "Topic :: Scientific/Engineering",
@@ -23,15 +22,15 @@ classifiers=[
 ]
 
 dependencies = [
-  "fairseq2==0.2.*",
+  "fairseq2>=0.2.0",
   "numpy>=1.21",
   "torch",
   "torchaudio",
   "sox",
   "soundfile",
+  "tqdm",
   "typing_extensions",
 ]
-
 
 [project.optional-dependencies]
   dev = [
@@ -54,7 +53,6 @@ dependencies = [
 
 [tool.flit.module]
 name = "sonar"
-
 
 [tool.black]
 line-length = 88

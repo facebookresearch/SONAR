@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import List, Optional, Sequence, Union, cast
+from typing import Iterable, List, Optional, Sequence, Union, cast
 
 import torch
 from fairseq2.data import (
@@ -27,7 +27,7 @@ from fairseq2.models.sequence import SequenceBatch
 from fairseq2.models.transformer import TransformerDecoderModel
 from fairseq2.typing import DataType, Device
 
-from sonar.inference_pipelines.utils import extract_sequence_batch
+from sonar.inference_pipelines.utils import add_progress_bar, extract_sequence_batch
 from sonar.models.encoder_model import SonarEncoderModel
 from sonar.models.sonar_speech.loader import load_sonar_speech_model
 from sonar.models.sonar_speech.model import SonarSpeechEncoderModel
@@ -63,6 +63,7 @@ class SpeechInferenceParams:
     device: Device = CPU_DEVICE
     """The device on which to run inference."""
 
+    # TODO: This will be soon auto-tuned. Right now hand-tuned for devfair.
     n_parallel: int = 4
     """Number of parallel calls when running the pipeline."""
 
@@ -351,8 +352,12 @@ class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
         n_parallel: int = 1,
         pad_idx: int = 0,
         n_prefetched_batches: int = 2,
+        progress_bar: int = False,
+        **generator_kwargs,
     ) -> List[str]:
-        generator = BeamSearchSeq2SeqGenerator(self.model.to(self.device))
+        generator = BeamSearchSeq2SeqGenerator(
+            self.model.to(self.device), **generator_kwargs
+        )
         converter = SequenceToTextConverter(
             generator,
             self.tokenizer,
@@ -365,7 +370,7 @@ class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
             texts, _ = converter.batch_convert(batch.seqs, batch.padding_mask)
             return texts
 
-        pipeline = (
+        pipeline: Iterable = (
             read_sequence(input)
             .map(self._decode_audio)
             .map(self.convert_to_fbank, num_parallel_calls=n_parallel)
@@ -382,6 +387,8 @@ class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
             .map(_do_generate)
             .and_return()
         )
+        if progress_bar:
+            pipeline = add_progress_bar(pipeline, inputs=input, batch_size=batch_size)
 
         results: List[List[StringLike]] = list(iter(pipeline))
         return [str(x) for y in results for x in y]
@@ -449,10 +456,13 @@ class SpeechToEmbeddingModelPipeline(SpeechModelPipelineInterface):
         n_parallel: int = 1,
         pad_idx: int = 0,
         n_prefetched_batches: int = 2,
+        progress_bar: bool = False,
     ) -> torch.Tensor:
-        pipeline = self.build_predict_pipeline(
+        pipeline: Iterable = self.build_predict_pipeline(
             read_sequence(input), batch_size, n_parallel, pad_idx, n_prefetched_batches
         ).and_return()
+        if progress_bar:
+            pipeline = add_progress_bar(pipeline, inputs=input, batch_size=batch_size)
         results = list(iter(pipeline))
         sentence_embeddings = torch.cat(results, dim=0)
         return sentence_embeddings
