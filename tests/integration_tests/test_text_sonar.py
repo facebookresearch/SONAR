@@ -6,11 +6,13 @@
 
 from typing import List
 
+import pytest
 import torch
 from fairseq2.models.sequence import SequenceBatch
 from torch.testing import assert_close  # type: ignore
 
 from sonar.inference_pipelines.text import (
+    EmbeddingToTextModelPipeline,
     TextToEmbeddingModelPipeline,
     TextToTextModelPipeline,
 )
@@ -27,6 +29,10 @@ class TestSonarTextClass:
         "text_sonar_basic_encoder",
         "text_sonar_basic_decoder",
         "text_sonar_basic_encoder",
+    )
+    vec2text = EmbeddingToTextModelPipeline(
+        "text_sonar_basic_decoder",  # name of the decoder
+        "text_sonar_basic_encoder",  # name of the tokenizer
     )
 
     def get_normalized_embeddings(
@@ -45,6 +51,12 @@ class TestSonarTextClass:
         actual_sim = torch.matmul(encoded_eng, encoded_fr.T)
         expected_sim = torch.Tensor([[0.9367, 0.3658], [0.3787, 0.8596]])
         assert_close(actual_sim, expected_sim, rtol=1e-4, atol=1e-4)
+
+    @torch.inference_mode()
+    def test_encode_long_text(self) -> None:
+        """Text that the encoder does not fail with long texts"""
+        with pytest.warns():
+            self.get_normalized_embeddings(["Hello! " * 1000], lang="eng_Latn")
 
     @torch.inference_mode()
     def test_text_decoder_sonar(self) -> None:
@@ -98,3 +110,9 @@ class TestSonarTextClass:
         )
         actual = french_translated_sentences
         assert actual == self.fr_sentences
+
+    @torch.inference_mode()
+    def test_vec2text_decode(self) -> None:
+        encoded_eng = self.text2vec.predict(self.eng_sentences, source_lang="eng_Latn")
+        decoded_fra = self.vec2text.predict(encoded_eng, target_lang="fra_Latn")
+        assert decoded_fra == self.fr_sentences
