@@ -29,6 +29,7 @@ dependencies = [
   "sox",
   "soundfile",
   "tqdm",
+  "overrides",
   "typing_extensions",
 ]
 
