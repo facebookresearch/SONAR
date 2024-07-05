@@ -22,8 +22,8 @@ classifiers=[
 ]
 
 dependencies = [
-  "fairseq2>=0.2.0",
   "numpy>=1.21",
+  "fairseq2>=0.2.1",
   "torch",
   "torchaudio",
   "sox",
