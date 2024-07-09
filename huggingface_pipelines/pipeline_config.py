@@ -16,6 +16,7 @@ class PipelineConfig:
         shard_id (int, optional): The ID of the shard to process. Defaults to 0.
         low_bleu_threshold (float, optional): The threshold for reporting low BLEU scores. Defaults to 0.5.
         device (str, optional): The device to run the pipeline on (e.g., 'cpu', 'cuda'). Defaults to 'cpu'.
+        cache_to_arrow (bool, optional): Whether to cache the results to an Arrow file. Defaults to False
     """
     encoder_model: str
     decoder_model: str
@@ -28,3 +29,4 @@ class PipelineConfig:
     shard_id: int = 0
     low_bleu_threshold: float = 0.5
     device : str = "cpu"
+    cache_to_arrow: bool = False

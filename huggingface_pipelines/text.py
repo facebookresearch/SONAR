@@ -149,8 +149,12 @@ class SonarHFTextToTextPipeline:
                                 for i in range(len(results[next(iter(results))]))])
 
             logger.info("Shard processed. Caching results...")
-            self.cache_results()
-            logger.info("Results cached successfully.")
+            if(self.config.cache_to_arrow):
+                self.cache_results_arrow()
+                logger.info("Results cached successfully to Arrow file.")
+            else:
+                self.cache_results()
+                logger.info("Results cached successfully to disk.")
         except Exception as e:
             logger.error(f"Error processing batches: {e}")
 
@@ -165,6 +169,22 @@ class SonarHFTextToTextPipeline:
                 f"Caching results to results_shard_{self.config.shard_id}.json...")
             with open(f'results_shard_{self.config.shard_id}.json', 'w') as f:
                 json.dump(self.results, f)
+            logger.info("Results cached successfully.")
+        except Exception as e:
+            logger.error(f"Error caching results: {e}")
+
+    def cache_results_arrow(self):
+        """
+        Caches the results to an Arrow file.
+
+        The results are saved in a file named 'results_shard_{shard_id}.arrow'.
+        """
+        try:
+            logger.info(f"Caching results to results_shard_{self.config.shard_id}.arrow...")
+            dataset = Dataset.from_dict({"original": [result['original'] for result in self.results],
+                                         "reconstructed": [result['reconstructed'] for result in self.results],
+                                         "bleu": [result['bleu'] for result in self.results]})
+            dataset.save_to_disk(f'results_shard_{self.config.shard_id}.arrow')
             logger.info("Results cached successfully.")
         except Exception as e:
             logger.error(f"Error caching results: {e}")
