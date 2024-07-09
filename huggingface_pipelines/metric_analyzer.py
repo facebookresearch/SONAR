@@ -1,49 +1,40 @@
 import logging
-from evaluate import load
+from abc import ABC, abstractmethod
 from typing import List, Dict, Any
 from .pipeline_config import MetricConfig
 
 logger = logging.getLogger(__name__)
 
 
-class MetricAnalyzer:
+class MetricAnalyzer(ABC):
     """
-    A class to analyze metrics for text-to-text pipelines.
+    Abstract base class to analyze metrics for different data types.
     """
 
     def __init__(self, config: MetricConfig):
         self.config = config
-        self.metric = load(self.config.metric_name)
         self.results = []
 
-    def compute_metric(self, original_texts: List[str], reconstructed_texts: List[str]) -> Dict[str, Any]:
+    @abstractmethod
+    def compute_metric(self, original_data: List[Any], reconstructed_data: List[Any]) -> Dict[str, Any]:
         """
-        Computes the metric score between original and reconstructed texts.
+        Computes the metric score between original and reconstructed data.
 
         Args:
-            original_texts (List[str]): A list of original texts.
-            reconstructed_texts (List[str]): A list of reconstructed texts.
+            original_data (List[Any]): A list of original data.
+            reconstructed_data (List[Any]): A list of reconstructed data.
 
         Returns:
             Dict[str, Any]: A dictionary containing the metric score.
         """
-        logger.info(f"Computing {self.config.metric_name} score...")
-
-        references = [[text.split()] for text in original_texts]
-        predictions = reconstructed_texts
-
-        metric_score = self.metric.compute(
-            predictions=predictions, references=references)
-        logger.info(
-            f"{self.config.metric_name} score computed: {metric_score}")
-        return metric_score
+        pass
 
     def analyze_results(self, results: List[Dict[str, Any]]):
         """
         Analyzes the results to determine the percentage of batches with low scores.
 
         Args:
-            results (List[Dict[str, Any]]): A list of results containing original, reconstructed texts and metric scores.
+            results (List[Dict[str, Any]]): A list of results containing original, reconstructed data and metric scores.
         """
         if not results:
             logger.warning("No results to analyze.")
@@ -64,11 +55,12 @@ class MetricAnalyzer:
         Reports batches with scores below the threshold.
 
         Args:
-            results (List[Dict[str, Any]]): A list of results containing original, reconstructed texts and metric scores.
+            results (List[Dict[str, Any]]): A list of results containing original, reconstructed data and metric scores.
         """
         for result in results:
             if result['metric_score'][self.config.metric_name] < self.config.low_score_threshold:
                 logger.info(
                     f"Low {self.config.metric_name} score detected: {result['metric_score']}")
-                logger.info(f"Original Text: {result['original']}")
-                logger.info(f"Reconstructed Text: {result['reconstructed']}")
+                logger.info(f"Original Data: {result['original']}")
+                logger.info(f"Reconstructed Data: {result['reconstructed']}")
+
