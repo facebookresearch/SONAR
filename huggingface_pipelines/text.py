@@ -96,16 +96,14 @@ class SonarHFTextToTextPipeline:
         """
         try:
             logger.info("Starting to process batches...")
-            total_size = len(self.dataset)
-            shard_size = total_size // self.config.num_shards
+            if self.config.num_shards == 1:
+                # Process the entire dataset
+                dataset_shard = self.dataset
+            else:
+                # Select the shard
+                dataset_shard = self.dataset.shard(num_shards=self.config.num_shards, index=self.config.shard_id)
 
-            # Select the shard
-            start_idx = self.config.shard_id * shard_size
-            end_idx = (self.config.shard_id + 1) * \
-                shard_size if self.config.shard_id < self.config.num_shards - 1 else total_size
-            dataset_shard = self.dataset.select(range(start_idx, end_idx))
-
-            # Process the shard
+            # Process the shard or entire dataset
             results = dataset_shard.map(
                 lambda batch: self.process_batch(batch),
                 batched=True,
@@ -116,7 +114,7 @@ class SonarHFTextToTextPipeline:
             self.results.extend([{k: v[i] for k, v in results.items()}
                                 for i in range(len(results[next(iter(results))]))])
 
-            logger.info("Shard processed. Caching results...")
+            logger.info("Data processed. Caching results...")
             if self.config.cache_to_arrow:
                 self.cache_results_arrow()
                 logger.info("Results cached successfully to Arrow file.")

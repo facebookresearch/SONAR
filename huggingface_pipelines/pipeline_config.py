@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+
 @dataclass
 class PipelineConfig:
     """
@@ -16,7 +17,9 @@ class PipelineConfig:
     shard_id: int = 0
     low_bleu_threshold: float = 0.5
     device: str = 'cpu'
-    cache_to_arrow: bool = False
+    cache_to_arrow: bool = False,
+    output_file_name: str = "results"
+
 
 @dataclass
 class MetricConfig:

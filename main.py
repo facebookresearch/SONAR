@@ -1,10 +1,11 @@
 import logging
-from .pipeline_config import PipelineConfig, MetricConfig
-from .pipeline_factory import PipelineFactory
-from .metric_analyzer import MetricAnalyzer
+from huggingface_pipelines.pipeline_config import PipelineConfig, MetricConfig
+from huggingface_pipelines.pipeline_factory import PipelineFactory
+from huggingface_pipelines.metric_analyzer import MetricAnalyzer
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 def main():
 
@@ -32,6 +33,7 @@ def main():
 
     metric_analyzer = MetricAnalyzer(metric_config)
     metric_analyzer.analyze_results(pipeline.results)
+
 
 if __name__ == "__main__":
     main()
