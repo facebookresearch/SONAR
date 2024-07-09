@@ -1,9 +1,10 @@
 from .text import SonarHFTextToTextPipeline
 from .pipeline_config import PipelineConfig
 
+
 class PipelineFactory:
     """
-    Factory class for creating SonarHFTextToTextPipeline instances.
+    Factory class for creating pipeline instances.
     """
 
     @staticmethod
