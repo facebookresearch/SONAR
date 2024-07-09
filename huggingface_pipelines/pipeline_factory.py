@@ -1,4 +1,5 @@
-
+from .text import SonarHFTextToTextPipeline
+from .pipeline_config import PipelineConfig
 
 class PipelineFactory:
     """

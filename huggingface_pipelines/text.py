@@ -1,35 +1,32 @@
 import json
 import logging
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 from sonar.inference_pipelines.text import TextToEmbeddingModelPipeline, EmbeddingToTextModelPipeline
-from evaluate import load
 from dataclasses import dataclass, field
 from typing import List, Dict, Any
-from .pipeline_factory import PipelineFactory
-from .config import PipelineConfig
+from .pipeline_config import PipelineConfig
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 
 @dataclass
 class SonarHFTextToTextPipeline:
     """
     A pipeline for encoding text datasets from HuggingFace into embeddings, decoding embeddings back to texts,
-    and evaluating the quality using BLEU scores.
+    and evaluating the quality using metrics.
     """
     config: PipelineConfig
     results: List[Dict[str, Any]] = field(default_factory=list)
 
     def __post_init__(self):
         """
-        Initializes the dataset, models, and BLEU metric after the instance is created.
+        Initializes the dataset, models, and metric after the instance is created.
         """
         logger.info(
             f"Loading dataset {self.config.dataset_name} with split {self.config.dataset_split}...")
         self.dataset = load_dataset(
             self.config.dataset_name, split=self.config.dataset_split)
         logger.info("Dataset loaded. Initializing models...")
-        self.bleu_metric = load("bleu")
         self.t2vec_model = TextToEmbeddingModelPipeline(
             encoder=self.config.encoder_model, tokenizer=self.config.encoder_model, device=self.config.device)
         self.t2t_model = EmbeddingToTextModelPipeline(
@@ -76,50 +73,21 @@ class SonarHFTextToTextPipeline:
             logger.error(f"Error decoding texts: {e}")
             raise
 
-    def compute_bleu(self, original_texts: List[str], reconstructed_texts: List[str]) -> List[float]:
-        """
-        Computes the BLEU score between original and reconstructed texts.
-
-        Args:
-            original_texts (List[str]): A list of original texts.
-            reconstructed_texts (List[str]): A list of reconstructed texts.
-
-        Returns:
-            List[float]: A list containing the BLEU score.
-        """
-        logger.info("Computing BLEU score...")
-
-        logger.info(f"Original texts: {original_texts}")
-        logger.info(f"Reconstructed Texts: {reconstructed_texts}")
-
-        references = [[text.split()] for text in original_texts]
-        logger.info(f"References: {references}")
-
-        predictions = [text.split() for text in reconstructed_texts]
-        logger.info(f"Predictions: {predictions}")
-
-        bleu_score = self.bleu_metric.compute(
-            predictions=predictions, references=references, smooth=True)
-        logger.info(f"BLEU score computed: {bleu_score['bleu']}")
-        return [bleu_score['bleu']]
-
     def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Processes a single batch of data, returning original, reconstructed texts and BLEU score.
+        Processes a single batch of data, returning original, reconstructed texts and metric score.
 
         Args:
             batch (Dict[str, Any]): A batch of data containing texts.
 
         Returns:
-            Dict[str, Any]: A dictionary containing original texts, reconstructed texts, and BLEU score.
+            Dict[str, Any]: A dictionary containing original texts, reconstructed texts, and metric score.
         """
         logger.info("Processing batch...")
         texts = batch['text']
         embeddings = self.encode_texts(texts)
         reconstructed_texts = self.decode_embeddings(embeddings)
-        bleu_score = self.compute_bleu(texts, reconstructed_texts)
-        logger.info(f"Batch processed. BLEU score: {bleu_score}")
-        return {'original': texts, 'reconstructed': reconstructed_texts, 'bleu': bleu_score}
+        return {'original': texts, 'reconstructed': reconstructed_texts}
 
     def process_batches(self):
         """
@@ -149,7 +117,7 @@ class SonarHFTextToTextPipeline:
                                 for i in range(len(results[next(iter(results))]))])
 
             logger.info("Shard processed. Caching results...")
-            if(self.config.cache_to_arrow):
+            if self.config.cache_to_arrow:
                 self.cache_results_arrow()
                 logger.info("Results cached successfully to Arrow file.")
             else:
@@ -177,71 +145,13 @@ class SonarHFTextToTextPipeline:
         """
         Caches the results to an Arrow file.
 
-        The results are saved in a file named 'results_shard_{shard_id}.arrow'.
+        The results are saved in a file named 'results_shard_{self.config.shard_id}.arrow'.
         """
         try:
             logger.info(f"Caching results to results_shard_{self.config.shard_id}.arrow...")
             dataset = Dataset.from_dict({"original": [result['original'] for result in self.results],
-                                         "reconstructed": [result['reconstructed'] for result in self.results],
-                                         "bleu": [result['bleu'] for result in self.results]})
+                                         "reconstructed": [result['reconstructed'] for result in self.results]})
             dataset.save_to_disk(f'results_shard_{self.config.shard_id}.arrow')
             logger.info("Results cached successfully.")
         except Exception as e:
             logger.error(f"Error caching results: {e}")
-
-    def analyze_results(self):
-        """
-        Analyzes the results to determine the percentage of batches with low BLEU scores.
-        """
-        if not self.results:
-            logger.warning("No results to analyze.")
-            return
-
-        logger.info("Analyzing results...")
-        low_bleu_count = sum(
-            1 for result in self.results if result['bleu'][0] < self.config.low_bleu_threshold)
-        total_batches = len(self.results)
-        low_bleu_percentage = (low_bleu_count / total_batches) * 100
-
-        logger.info(
-            f"Percentage of batches with BLEU score below {self.config.low_bleu_threshold}: {low_bleu_percentage:.2f}%")
-        self.report_low_bleu_scores()
-
-    def report_low_bleu_scores(self):
-        """
-        Reports batches with BLEU scores below the threshold.
-        """
-        for result in self.results:
-            if result['bleu'][0] < self.config.low_bleu_threshold:
-                logger.info(f"Low BLEU score detected: {result['bleu'][0]}")
-                logger.info(f"Original Text: {result['original']}")
-                logger.info(f"Reconstructed Text: {result['reconstructed']}")
-
-
-
-
-
-def main():
-
-    config = PipelineConfig(
-        encoder_model="text_sonar_basic_encoder",
-        decoder_model="text_sonar_basic_decoder",
-        dataset_name="ag_news",
-        dataset_split="test",
-        source_lang="eng_Latn",
-        target_lang="eng_Latn",
-        batch_size=5,
-        num_shards=1,
-        shard_id=0,
-        device="cpu"
-    )
-
-    pipeline = PipelineFactory.create_pipeline(config)
-
-    pipeline.process_batches()
-    pipeline.analyze_results()
-
-
-
-if __name__ == "__main__":
-    main()
