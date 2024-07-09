@@ -1,6 +1,6 @@
-from .config import MetricConfig
+from .pipeline_config import MetricConfig
 from .metric_analyzer import MetricAnalyzer
-from .bleu_analyzer import BleuAnalyzer
+from .metrics.bleu_analyzer import BleuAnalyzer
 
 
 class MetricAnalyzerFactory:

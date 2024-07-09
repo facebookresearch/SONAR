@@ -1,5 +1,5 @@
 import logging
-from huggingface_pipelines.config import PipelineConfig, MetricConfig
+from huggingface_pipelines.pipeline_config import PipelineConfig, MetricConfig
 from huggingface_pipelines.pipeline_factory import PipelineFactory
 from huggingface_pipelines.metric_analyzer_factory import MetricAnalyzerFactory
 
