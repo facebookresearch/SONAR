@@ -19,6 +19,7 @@ class PipelineConfig:
     device: str = 'cpu'
     cache_to_arrow: bool = False,
     output_file_name: str = "results"
+    columns = ["text"]
 
 
 @dataclass

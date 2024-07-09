@@ -9,6 +9,7 @@ from .pipeline_config import PipelineConfig
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class SonarHFTextToTextPipeline:
     """
@@ -73,6 +74,22 @@ class SonarHFTextToTextPipeline:
             logger.error(f"Error decoding texts: {e}")
             raise
 
+    def process_column(self, texts: List[str], column_name: str) -> Dict[str, Any]:
+        """
+        Processes a single column of texts, returning original, reconstructed texts and metric score.
+
+        Args:
+            texts (List[str]): A list of texts to be processed.
+            column_name (str): The name of the column being processed.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing original texts, reconstructed texts, and column name.
+        """
+        logger.info(f"Processing column '{column_name}'...")
+        embeddings = self.encode_texts(texts)
+        reconstructed_texts = self.decode_embeddings(embeddings)
+        return {'original': texts, 'reconstructed': reconstructed_texts, 'column': column_name}
+
     def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
         """
         Processes a single batch of data, returning original, reconstructed texts and metric score.
@@ -81,13 +98,13 @@ class SonarHFTextToTextPipeline:
             batch (Dict[str, Any]): A batch of data containing texts.
 
         Returns:
-            Dict[str, Any]: A dictionary containing original texts, reconstructed texts, and metric score.
+            Dict[str, Any]: A dictionary containing processed results for each column.
         """
-        logger.info("Processing batch...")
-        texts = batch['text']
-        embeddings = self.encode_texts(texts)
-        reconstructed_texts = self.decode_embeddings(embeddings)
-        return {'original': texts, 'reconstructed': reconstructed_texts}
+        results = {}
+        for column in self.config.columns:
+            texts = batch[column]
+            results[column] = self.process_column(texts, column)
+        return results
 
     def process_batches(self):
         """
@@ -101,7 +118,8 @@ class SonarHFTextToTextPipeline:
                 dataset_shard = self.dataset
             else:
                 # Select the shard
-                dataset_shard = self.dataset.shard(num_shards=self.config.num_shards, index=self.config.shard_id)
+                dataset_shard = self.dataset.shard(
+                    num_shards=self.config.num_shards, index=self.config.shard_id)
 
             # Process the shard or entire dataset
             results = dataset_shard.map(
@@ -111,8 +129,13 @@ class SonarHFTextToTextPipeline:
                 remove_columns=dataset_shard.column_names,
                 load_from_cache_file=False
             )
-            self.results.extend([{k: v[i] for k, v in results.items()}
-                                for i in range(len(results[next(iter(results))]))])
+            for result in results:
+                for column, column_result in result.items():
+                    self.results.append({
+                        'column': column,
+                        'original': column_result['original'],
+                        'reconstructed': column_result['reconstructed']
+                    })
 
             logger.info("Data processed. Caching results...")
             if self.config.cache_to_arrow:
@@ -128,12 +151,12 @@ class SonarHFTextToTextPipeline:
         """
         Caches the results to a JSON file.
 
-        The results are saved in a file named 'results_shard_{shard_id}.json'.
+        The results are saved in a file named 'output_file_name_shard_{shard_id}.json'.
         """
         try:
-            logger.info(
-                f"Caching results to results_shard_{self.config.shard_id}.json...")
-            with open(f'results_shard_{self.config.shard_id}.json', 'w') as f:
+            file_name = f'{self.config.output_file_name}_shard_{self.config.shard_id}.json'
+            logger.info(f"Caching results to {file_name}...")
+            with open(file_name, 'w') as f:
                 json.dump(self.results, f)
             logger.info("Results cached successfully.")
         except Exception as e:
@@ -143,13 +166,18 @@ class SonarHFTextToTextPipeline:
         """
         Caches the results to an Arrow file.
 
-        The results are saved in a file named 'results_shard_{self.config.shard_id}.arrow'.
+        The results are saved in a file named 'output_file_name_shard_{shard_id}.arrow'.
         """
         try:
-            logger.info(f"Caching results to results_shard_{self.config.shard_id}.arrow...")
-            dataset = Dataset.from_dict({"original": [result['original'] for result in self.results],
-                                         "reconstructed": [result['reconstructed'] for result in self.results]})
-            dataset.save_to_disk(f'results_shard_{self.config.shard_id}.arrow')
+            file_name = f'{self.config.output_file_name}_shard_{self.config.shard_id}.arrow'
+            logger.info(f"Caching results to {file_name}...")
+            dataset = Dataset.from_dict({
+                "column": [result['column'] for result in self.results],
+                "original": [result['original'] for result in self.results],
+                "reconstructed": [result['reconstructed'] for result in self.results]
+            })
+            dataset.save_to_disk(file_name)
             logger.info("Results cached successfully.")
         except Exception as e:
             logger.error(f"Error caching results: {e}")
+

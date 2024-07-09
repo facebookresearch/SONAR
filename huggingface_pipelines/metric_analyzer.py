@@ -1,159 +1,74 @@
-import json
 import logging
-from datasets import load_dataset, Dataset
-from sonar.inference_pipelines.text import TextToEmbeddingModelPipeline, EmbeddingToTextModelPipeline
-from dataclasses import dataclass, field
+from evaluate import load
 from typing import List, Dict, Any
-from .pipeline_config import PipelineConfig
+from .pipeline_config import MetricConfig
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class SonarHFTextToTextPipeline:
+class MetricAnalyzer:
     """
-    A pipeline for encoding text datasets from HuggingFace into embeddings, decoding embeddings back to texts,
-    and evaluating the quality using metrics.
+    A class to analyze metrics for text-to-text pipelines.
     """
-    config: PipelineConfig
-    results: List[Dict[str, Any]] = field(default_factory=list)
 
-    def __post_init__(self):
+    def __init__(self, config: MetricConfig):
+        self.config = config
+        self.metric = load(self.config.metric_name)
+        self.results = []
+
+    def compute_metric(self, original_texts: List[str], reconstructed_texts: List[str]) -> Dict[str, Any]:
         """
-        Initializes the dataset, models, and metric after the instance is created.
+        Computes the metric score between original and reconstructed texts.
+
+        Args:
+            original_texts (List[str]): A list of original texts.
+            reconstructed_texts (List[str]): A list of reconstructed texts.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing the metric score.
         """
+        logger.info(f"Computing {self.config.metric_name} score...")
+
+        references = [[text.split()] for text in original_texts]
+        predictions = reconstructed_texts
+
+        metric_score = self.metric.compute(
+            predictions=predictions, references=references)
         logger.info(
-            f"Loading dataset {self.config.dataset_name} with split {self.config.dataset_split}...")
-        self.dataset = load_dataset(
-            self.config.dataset_name, split=self.config.dataset_split)
-        logger.info("Dataset loaded. Initializing models...")
-        self.t2vec_model = TextToEmbeddingModelPipeline(
-            encoder=self.config.encoder_model, tokenizer=self.config.encoder_model, device=self.config.device)
-        self.t2t_model = EmbeddingToTextModelPipeline(
-            decoder=self.config.decoder_model, tokenizer=self.config.encoder_model, device=self.config.device)
-        logger.info("Models initialized.")
+            f"{self.config.metric_name} score computed: {metric_score}")
+        return metric_score
 
-    def encode_texts(self, texts: List[str]) -> List[Dict[str, Any]]:
+    def analyze_results(self, results: List[Dict[str, Any]]):
         """
-        Encodes a list of texts into embeddings.
+        Analyzes the results to determine the percentage of batches with low scores.
 
         Args:
-            texts (List[str]): A list of texts to be encoded.
-
-        Returns:
-            List[Dict[str, Any]]: A list of encoded embeddings.
+            results (List[Dict[str, Any]]): A list of results containing original, reconstructed texts and metric scores.
         """
-        try:
-            logger.info(f"Encoding {len(texts)} texts...")
-            embeddings = self.t2vec_model.predict(
-                texts, source_lang=self.config.source_lang, batch_size=self.config.batch_size)
-            logger.info("Texts encoded successfully.")
-            return embeddings
-        except Exception as e:
-            logger.error(f"Error encoding texts: {e}")
-            raise
+        if not results:
+            logger.warning("No results to analyze.")
+            return
 
-    def decode_embeddings(self, embeddings: List[Any]) -> List[str]:
+        logger.info(f"Analyzing results for {self.config.metric_name}...")
+        low_score_count = sum(
+            1 for result in results if result['metric_score'][self.config.metric_name] < self.config.low_score_threshold)
+        total_batches = len(results)
+        low_score_percentage = (low_score_count / total_batches) * 100
+
+        logger.info(
+            f"Percentage of batches with {self.config.metric_name} score below {self.config.low_score_threshold}: {low_score_percentage:.2f}%")
+        self.report_low_scores(results)
+
+    def report_low_scores(self, results: List[Dict[str, Any]]):
         """
-        Decodes a list of embeddings back into texts.
+        Reports batches with scores below the threshold.
 
         Args:
-            embeddings (List[Any]): A list of embeddings to be decoded.
-
-        Returns:
-            List[str]: A list of decoded texts.
+            results (List[Dict[str, Any]]): A list of results containing original, reconstructed texts and metric scores.
         """
-        try:
-            logger.info(f"Decoding {len(embeddings)} embeddings...")
-            decoded_texts = self.t2t_model.predict(
-                embeddings, target_lang=self.config.target_lang, batch_size=self.config.batch_size)
-            logger.info("Texts decoded successfully.")
-            return decoded_texts
-        except Exception as e:
-            logger.error(f"Error decoding texts: {e}")
-            raise
-
-    def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Processes a single batch of data, returning original, reconstructed texts and metric score.
-
-        Args:
-            batch (Dict[str, Any]): A batch of data containing texts.
-
-        Returns:
-            Dict[str, Any]: A dictionary containing original texts, reconstructed texts.
-        """
-        logger.info("Processing batch...")
-        texts = batch['text']
-        embeddings = self.encode_texts(texts)
-        reconstructed_texts = self.decode_embeddings(embeddings)
-        return {'original': texts, 'reconstructed': reconstructed_texts}
-
-    def process_batches(self):
-        """
-        Processes all batches in the dataset and stores the results.
-        Splits the dataset into shards and processes the specified shard.
-        """
-        try:
-            logger.info("Starting to process batches...")
-            if self.config.num_shards == 1:
-                # Process the entire dataset
-                dataset_shard = self.dataset
-            else:
-                # Select the shard
-                dataset_shard = self.dataset.shard(
-                    num_shards=self.config.num_shards, index=self.config.shard_id)
-
-            # Process the shard or entire dataset
-            results = dataset_shard.map(
-                lambda batch: self.process_batch(batch),
-                batched=True,
-                batch_size=self.config.batch_size,
-                remove_columns=dataset_shard.column_names,
-                load_from_cache_file=False
-            )
-            self.results.extend([{k: v[i] for k, v in results.items()}
-                                for i in range(len(results[next(iter(results))]))])
-
-            logger.info("Data processed. Caching results...")
-            if self.config.cache_to_arrow:
-                self.cache_results_arrow()
-                logger.info("Results cached successfully to Arrow file.")
-            else:
-                self.cache_results()
-                logger.info("Results cached successfully to disk.")
-        except Exception as e:
-            logger.error(f"Error processing batches: {e}")
-
-    def cache_results(self):
-        """
-        Caches the results to a JSON file.
-
-        The results are saved in a file named 'output_file_name_shard_{shard_id}.json'.
-        """
-        try:
-            file_name = f'{self.config.output_file_name}_shard_{self.config.shard_id}.json'
-            logger.info(f"Caching results to {file_name}...")
-            with open(file_name, 'w') as f:
-                json.dump(self.results, f)
-            logger.info("Results cached successfully.")
-        except Exception as e:
-            logger.error(f"Error caching results: {e}")
-
-    def cache_results_arrow(self):
-        """
-        Caches the results to an Arrow file.
-
-        The results are saved in a file named 'output_file_name_shard_{shard_id}.arrow'.
-        """
-        try:
-            file_name = f'{self.config.output_file_name}_shard_{self.config.shard_id}.arrow'
-            logger.info(f"Caching results to {file_name}...")
-            dataset = Dataset.from_dict({"original": [result['original'] for result in self.results],
-                                         "reconstructed": [result['reconstructed'] for result in self.results]})
-            dataset.save_to_disk(file_name)
-            logger.info("Results cached successfully.")
-        except Exception as e:
-            logger.error(f"Error caching results: {e}")
-
+        for result in results:
+            if result['metric_score'][self.config.metric_name] < self.config.low_score_threshold:
+                logger.info(
+                    f"Low {self.config.metric_name} score detected: {result['metric_score']}")
+                logger.info(f"Original Text: {result['original']}")
+                logger.info(f"Reconstructed Text: {result['reconstructed']}")
