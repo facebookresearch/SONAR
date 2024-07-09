@@ -1,0 +1,30 @@
+
+@dataclass
+class PipelineConfig:
+    """
+    Configuration class for the SonarHFTextToTextPipeline.
+
+    Attributes:
+        encoder_model (str): The name or path of the model to be used for encoding texts into embeddings.
+        decoder_model (str): The name or path of the model to be used for decoding embeddings back into texts.
+        dataset_name (str): The name of the HuggingFace dataset to be used.
+        dataset_split (str): The dataset split to be used (e.g., 'train', 'test', 'validation').
+        source_lang (str): The source language code for the texts to be encoded.
+        target_lang (str): The target language code for the texts to be decoded.
+        batch_size (int): The batch size to be used for encoding and decoding.
+        num_shards (int, optional): The number of shards to split the dataset into. Defaults to 1.
+        shard_id (int, optional): The ID of the shard to process. Defaults to 0.
+        low_bleu_threshold (float, optional): The threshold for reporting low BLEU scores. Defaults to 0.5.
+        device (str, optional): The device to run the pipeline on (e.g., 'cpu', 'cuda'). Defaults to 'cpu'.
+    """
+    encoder_model: str
+    decoder_model: str
+    dataset_name: str
+    dataset_split: str
+    source_lang: str
+    target_lang: str
+    batch_size: int
+    num_shards: int = 1
+    shard_id: int = 0
+    low_bleu_threshold: float = 0.5
+    device : str = "cpu"
