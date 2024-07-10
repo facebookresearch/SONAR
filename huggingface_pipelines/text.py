@@ -1,9 +1,8 @@
-import json
 import logging
-from datasets import load_dataset, Dataset
+from datasets import Dataset as HFDataset
 from sonar.inference_pipelines.text import TextToEmbeddingModelPipeline, EmbeddingToTextModelPipeline
-from dataclasses import dataclass
 from typing import List, Dict, Any
+from dataclasses import dataclass
 from .pipeline import Pipeline
 from .pipeline_config import TextPipelineConfig
 
@@ -21,18 +20,34 @@ class TextToTextHFPipeline(Pipeline):
 
     def __post_init__(self):
         """
-        Initializes the dataset, models, and metric after the instance is created.
+        Initializes the models.
         """
-        logger.info(
-            f"Loading dataset {self.config.dataset_name} with split {self.config.dataset_split}...")
-        self.dataset = load_dataset(
-            self.config.dataset_name, split=self.config.dataset_split)
-        logger.info("Dataset loaded. Initializing models...")
+        logger.info("Initializing models...")
         self.t2vec_model = TextToEmbeddingModelPipeline(
             encoder=self.config.encoder_model, tokenizer=self.config.encoder_model, device=self.config.device)
         self.t2t_model = EmbeddingToTextModelPipeline(
             decoder=self.config.decoder_model, tokenizer=self.config.encoder_model, device=self.config.device)
         logger.info("Models initialized.")
+
+    def process_batch(self, batch: Dict[str, Any], dataset: HFDataset) -> HFDataset:
+        """
+        Processes a single batch of data, encoding and decoding texts, and updating the dataset.
+
+        Args:
+            batch (Dict[str, Any]): A batch of data containing texts.
+            dataset (HFDataset): The dataset to update.
+
+        Returns:
+            HFDataset: The updated dataset.
+        """
+        for column in self.config.columns:
+            texts = batch[column]
+            embeddings = self.encode_texts(texts)
+            reconstructed_texts = self.decode_embeddings(embeddings)
+            dataset = dataset.add_column(column + '_embeddings', embeddings)
+            dataset = dataset.add_column(
+                column + '_reconstructed', reconstructed_texts)
+        return dataset
 
     def encode_texts(self, texts: List[str]) -> List[Dict[str, Any]]:
         """
@@ -73,56 +88,4 @@ class TextToTextHFPipeline(Pipeline):
         except Exception as e:
             logger.error(f"Error decoding texts: {e}")
             raise
-
-    def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Processes a single batch of data, returning original, reconstructed texts and metric score.
-
-        Args:
-            batch (Dict[str, Any]): A batch of data containing texts.
-
-        Returns:
-            Dict[str, Any]: A dictionary containing original texts, reconstructed texts, and column name.
-        """
-        results = {}
-        for column in self.config.columns:
-            texts = batch[column]
-            embeddings = self.encode_texts(texts)
-            reconstructed_texts = self.decode_embeddings(embeddings)
-            results[column] = {'original': texts,
-                               'reconstructed': reconstructed_texts}
-        return results
-
-    def cache_results(self):
-        """
-        Caches the results to a JSON file.
-
-        The results are saved in a file named 'output_file_name_shard_{shard_id}.json'.
-        """
-        try:
-            file_name = f'{self.config.output_file_name}_shard_{self.config.shard_id}.json'
-            logger.info(f"Caching results to {file_name}...")
-            with open(file_name, 'w') as f:
-                json.dump(self.results, f)
-            logger.info("Results cached successfully.")
-        except Exception as e:
-            logger.error(f"Error caching results: {e}")
-
-    def cache_results_arrow(self):
-        """
-        Caches the results to an Arrow file.
-
-        The results are saved in a file named 'output_file_name_shard_{self.config.shard_id}.arrow'.
-        """
-        try:
-            file_name = f'{self.config.output_file_name}_shard_{self.config.shard_id}.arrow'
-            logger.info(f"Caching results to {file_name}...")
-            dataset = Dataset.from_dict({
-                "original": [result['original'] for result in self.results],
-                "reconstructed": [result['reconstructed'] for result in self.results]
-            })
-            dataset.save_to_disk(file_name)
-            logger.info("Results cached successfully.")
-        except Exception as e:
-            logger.error(f"Error caching results: {e}")
 

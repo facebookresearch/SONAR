@@ -8,33 +8,12 @@ logger = logging.getLogger(__name__)
 
 
 def main():
+    text_config = Config(...)
+    pipeline = SonarPipeline(config)
+    dataset = hf.load_dataset(dataset_name)
+    datasets = pipeline(dataset)
 
-    pipeline_config = TextPipelineConfig(
-        encoder_model="text_sonar_basic_encoder",
-        decoder_model="text_sonar_basic_decoder",
-        dataset_name="ag_news",
-        dataset_split="test",
-        source_lang="eng_Latn",
-        target_lang="eng_Latn",
-        batch_size=5,
-        columns=["text"],  # Specify the columns to process
-        num_shards=1,
-        shard_id=0,
-        device="cpu",
-        cache_to_arrow=True,
-        output_file_name="ag_news_results",
-    )
-
-    metric_config = MetricConfig(
-        metric_name="bleu",
-        low_score_threshold=0.5
-    )
-
-    pipeline = PipelineFactory.create_pipeline(pipeline_config)
-    pipeline.process_batches()
-
-    metric_analyzer = MetricAnalyzerFactory.create_analyzer(metric_config)
-    metric_analyzer.analyze_results(pipeline.results)
+    for next(iter(dataset)):
 
 
 if __name__ == "__main__":

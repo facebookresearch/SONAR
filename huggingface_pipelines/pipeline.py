@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any
 import logging
+from datasets import Dataset as HFDataset
 from .pipeline_config import PipelineConfig
 
 logging.basicConfig(level=logging.INFO)
@@ -17,63 +18,43 @@ class Pipeline(ABC):
         self.results = []
 
     @abstractmethod
-    def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
+    def process_batch(self, batch: Dict[str, Any], dataset: HFDataset) -> HFDataset:
         """
-        Processes a single batch of data.
+        Processes a single batch of data and returns the updated dataset.
 
         Args:
             batch (Dict[str, Any]): A batch of data.
+            dataset (HFDataset): The dataset to update.
 
         Returns:
-            Dict[str, Any]: Processed batch results.
+            HFDataset: The updated dataset.
         """
         pass
 
-    def process_batches(self):
+    def __call__(self, dataset: HFDataset) -> HFDataset:
         """
-        Processes all batches in the dataset and stores the results.
+        Processes the dataset and updates it.
+
+        Args:
+            dataset (HFDataset): The dataset to process.
+
+        Returns:
+            HFDataset: The updated dataset.
         """
         try:
-            logger.info("Starting to process batches...")
-            if self.config.num_shards == 1:
-                # Process the entire dataset
-                dataset_shard = self.dataset
-            else:
-                # Select the shard
-                dataset_shard = self.dataset.shard(
+            logger.info("Starting to process dataset...")
+            if self.config.num_shards > 1:
+                dataset = dataset.shard(
                     num_shards=self.config.num_shards, index=self.config.shard_id)
 
-            # Process the shard or entire dataset
-            results = dataset_shard.map(
-                lambda batch: self.process_batch(batch),
+            updated_dataset = dataset.map(
+                lambda batch: self.process_batch(batch, dataset),
                 batched=True,
                 batch_size=self.config.batch_size,
-                remove_columns=dataset_shard.column_names,
                 load_from_cache_file=False
             )
-            self.results.extend([{k: v[i] for k, v in results.items()}
-                                 for i in range(len(results[next(iter(results))]))])
-
-            logger.info("Data processed. Caching results...")
-            if self.config.cache_to_arrow:
-                self.cache_results_arrow()
-                logger.info("Results cached successfully to Arrow file.")
-            else:
-                self.cache_results()
-                logger.info("Results cached successfully to disk.")
+            return updated_dataset
         except Exception as e:
-            logger.error(f"Error processing batches: {e}")
+            logger.error(f"Error processing dataset: {e}")
+            raise
 
-    @abstractmethod
-    def cache_results(self):
-        """
-        Caches the results to a file.
-        """
-        pass
-
-    @abstractmethod
-    def cache_results_arrow(self):
-        """
-        Caches the results to an Arrow file.
-        """
-        pass
