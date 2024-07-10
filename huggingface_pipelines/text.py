@@ -5,7 +5,7 @@ from sonar.inference_pipelines.text import TextToEmbeddingModelPipeline
 from typing import List, Dict, Any
 from dataclasses import dataclass
 from .pipeline import Pipeline
-from .pipeline_config import TextPipelineConfig
+from .pipeline_config import TextToEmbeddingPipelineConfig, EmbeddingToTextPipelineConfig
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ class HFTextToEmbeddingPipeline(Pipeline):
     """
     A pipeline for encoding text datasets from HuggingFace into embeddings.
     """
-    config: TextPipelineConfig
+    config: TextToEmbeddingPipelineConfig
 
     def __post_init__(self):
         """
@@ -70,7 +70,7 @@ class HFEmbeddingToTextPipeline(Pipeline):
     """
     A pipeline for decoding embeddings back into texts.
     """
-    config: TextPipelineConfig
+    config: EmbeddingToTextPipelineConfig
 
     def __post_init__(self):
         """

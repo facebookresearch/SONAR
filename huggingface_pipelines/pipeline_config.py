@@ -61,30 +61,38 @@ class PipelineConfig(ABC):
 
 
 @dataclass
-class TextPipelineConfig(PipelineConfig):
+class TextToEmbeddingPipelineConfig(PipelineConfig):
     """
-    Configuration class for text pipelines.
+    Configuration class for text-to-embedding pipelines.
 
     Attributes:
         encoder_model (str): The name or path of the model to be used for encoding texts into embeddings.
-        decoder_model (str): The name or path of the model to be used for decoding embeddings back into texts.
         source_lang (str): The source language code for the texts to be encoded.
-        target_lang (str): The target language code for the texts to be decoded.
-        columns (List[str]): The columns of the dataset to process. Defaults to ["text"].
     """
     encoder_model: str = "text_sonar_basic_encoder"
-    decoder_model: str = "text_sonar_basic_decoder"
     source_lang: str = "eng_Latn"
-    target_lang: str = "eng_Latn"
 
     def with_encoder_model(self, encoder_model: str):
         return replace(self, encoder_model=encoder_model)
 
-    def with_decoder_model(self, decoder_model: str):
-        return replace(self, decoder_model=decoder_model)
-
     def with_source_lang(self, source_lang: str):
         return replace(self, source_lang=source_lang)
+
+
+@dataclass
+class EmbeddingToTextPipelineConfig(PipelineConfig):
+    """
+    Configuration class for embedding-to-text pipelines.
+
+    Attributes:
+        decoder_model (str): The name or path of the model to be used for decoding embeddings back into texts.
+        target_lang (str): The target language code for the texts to be decoded.
+    """
+    decoder_model: str = "text_sonar_basic_decoder"
+    target_lang: str = "eng_Latn"
+
+    def with_decoder_model(self, decoder_model: str):
+        return replace(self, decoder_model=decoder_model)
 
     def with_target_lang(self, target_lang: str):
         return replace(self, target_lang=target_lang)
