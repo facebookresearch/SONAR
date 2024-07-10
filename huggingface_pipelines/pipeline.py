@@ -24,10 +24,10 @@ class Pipeline(ABC):
 
         Args:
             batch (Dict[str, Any]): A batch of data.
-            dataset (HFDataset): The dataset to update.
+            dataset (Dataset): The dataset to update.
 
         Returns:
-            HFDataset: The updated dataset.
+            Dataset: The updated dataset.
         """
         pass
 
@@ -36,10 +36,10 @@ class Pipeline(ABC):
         Processes the dataset and updates it.
 
         Args:
-            dataset (HFDataset): The dataset to process.
+            dataset (Dataset): The dataset to process.
 
         Returns:
-            HFDataset: The updated dataset.
+            Dataset: The updated dataset.
         """
         try:
             logger.info("Starting to process dataset...")

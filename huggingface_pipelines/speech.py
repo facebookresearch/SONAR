@@ -29,8 +29,8 @@ class AudioToTextHFPipeline(Pipeline):
             self.config.dataset_name, split=self.config.dataset_split)
         logger.info("Dataset loaded. Initializing models...")
         self.speech_to_text_pipeline = SpeechToTextPipeline.load_from_name(
-            encoder_name=self.config.encoder_model,
-            decoder_name=self.config.decoder_model
+            encoder_name=self.config.model_name,
+            decoder_name=self.config.model_name
         )
         logger.info("Models initialized.")
 
@@ -69,21 +69,23 @@ class AudioToTextHFPipeline(Pipeline):
             logger.error(f"Error transcribing audio: {e}")
             raise
 
-    def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
+    def process_batch(self, batch: Dict[str, Any], dataset: Dataset) -> Dataset:
         """
-        Processes a single batch of data, returning original audio, transcribed texts, and reference transcriptions.
+        Processes a single batch of data by transcribing audio and updating the dataset.
 
         Args:
-            batch (Dict[str, Any]): A batch of data containing audio and reference transcriptions.
+            batch (Dict[str, Any]): A batch of data containing audio.
+            dataset (Dataset): The dataset to update.
 
         Returns:
-            Dict[str, Any]: A dictionary containing original audio, transcribed texts, and reference transcriptions.
+            Dataset: The updated dataset.
         """
-        logger.info("Processing batch...")
-        audio_data = batch[self.config.audio_column]
-        reference_transcriptions = batch[self.config.reference_transcriptions]
-        transcribed_texts = self.transcribe_audio(audio_data)
-        return {'original': audio_data, 'transcribed': transcribed_texts, 'reference': reference_transcriptions}
+        for column in self.config.columns:
+            audio_data = batch[column]
+            transcribed_texts = self.transcribe_audio(audio_data)
+            dataset = dataset.add_column(
+                column + '_transcribed', transcribed_texts)
+        return dataset
 
     def cache_results(self):
         """
@@ -118,4 +120,31 @@ class AudioToTextHFPipeline(Pipeline):
             logger.info("Results cached successfully.")
         except Exception as e:
             logger.error(f"Error caching results: {e}")
+
+    def __call__(self, dataset: Dataset) -> Dataset:
+        """
+          Processes the dataset and updates it.
+
+          Args:
+              dataset (Dataset): The dataset to process.
+
+          Returns:
+              Dataset: The updated dataset.
+          """
+        try:
+            logger.info("Starting to process dataset...")
+            if self.config.num_shards > 1:
+                dataset = dataset.shard(
+                    num_shards=self.config.num_shards, index=self.config.shard_id)
+
+            updated_dataset = dataset.map(
+                lambda batch: self.process_batch(batch, dataset),
+                batched=True,
+                batch_size=self.config.batch_size,
+                load_from_cache_file=False
+            )
+            return updated_dataset
+        except Exception as e:
+            logger.error(f"Error processing dataset: {e}")
+            raise
 

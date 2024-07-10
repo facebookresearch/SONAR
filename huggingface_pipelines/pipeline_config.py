@@ -20,6 +20,7 @@ class PipelineConfig(ABC):
         output_file_name (str): The base name of the file where results will be saved. Defaults to "results".
     """
     dataset_name: str
+    columns: List[str]
     dataset_split: str = "test"
     batch_size: int = 5
     device: str = "cpu"
@@ -55,6 +56,9 @@ class PipelineConfig(ABC):
     def with_output_file_name(self, output_file_name: str):
         return replace(self, output_file_name=output_file_name)
 
+    def with_columns(self, columns: List[str]):
+        return replace(self, columns=columns)
+
 
 @dataclass
 class TextPipelineConfig(PipelineConfig):
@@ -72,7 +76,6 @@ class TextPipelineConfig(PipelineConfig):
     decoder_model: str = "text_sonar_basic_decoder"
     source_lang: str = "eng_Latn"
     target_lang: str = "eng_Latn"
-    columns: List[str]
 
     def with_encoder_model(self, encoder_model: str):
         return replace(self, encoder_model=encoder_model)
@@ -86,12 +89,9 @@ class TextPipelineConfig(PipelineConfig):
     def with_target_lang(self, target_lang: str):
         return replace(self, target_lang=target_lang)
 
-    def with_columns(self, columns: List[str]):
-        return replace(self, columns=columns)
-
 
 @dataclass
-class ASRPipelineConfig(PipelineConfig):
+class AudioPipelineConfig(PipelineConfig):
     """
     Configuration class for ASR pipelines.
 
@@ -109,7 +109,6 @@ class ASRPipelineConfig(PipelineConfig):
     """
     encoder_model = "sonar_speech_encoder_eng"
     decoder_model = "text_sonar_basic_decoder"
-    audio_column: str
     reference_transcriptions: str = "reference_transcription"
     data_file: str = None
     audio_root_dir: str = None
@@ -121,9 +120,6 @@ class ASRPipelineConfig(PipelineConfig):
 
     def with_model_name(self, model_name: str):
         return replace(self, model_name=model_name)
-
-    def with_audio_column(self, audio_column: str):
-        return replace(self, audio_column=audio_column)
 
     def with_reference_transcriptions(self, reference_transcriptions: str):
         return replace(self, reference_transcriptions=reference_transcriptions)
@@ -151,7 +147,7 @@ class ASRPipelineConfig(PipelineConfig):
 
 
 @dataclass
-class MetricConfig:
+class MetricPipelineConfig(PipelineConfig):
     """
     Configuration class for metrics.
 
@@ -159,8 +155,8 @@ class MetricConfig:
         metric_name (str): The name of the metric to be used for evaluation.
         low_score_threshold (float): The threshold below which the score is considered low.
     """
-    metric_name: str
-    low_score_threshold: float
+    metric_name: str = "bleu"
+    low_score_threshold: float = 0.5
 
     def with_metric_name(self, metric_name: str):
         return replace(self, metric_name=metric_name)

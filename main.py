@@ -1,19 +1,65 @@
 import logging
-from huggingface_pipelines.pipeline_config import TextPipelineConfig, MetricConfig
-from huggingface_pipelines.pipeline_factory import PipelineFactory
-from huggingface_pipelines.metric_analyzer_factory import MetricAnalyzerFactory
+from huggingface_pipelines.pipeline_config import TextPipelineConfig, MetricPipelineConfig
+from huggingface_pipelines.text import HFEmbeddingToTextPipeline
+from huggingface_pipelines.text import HFTextToEmbeddingPipeline
+from huggingface_pipelines.metric_analyzer import MetricAnalyzerPipeline
+from datasets import load_dataset
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 def main():
-    text_config = Config(...)
-    pipeline = SonarPipeline(config)
-    dataset = hf.load_dataset(dataset_name)
-    datasets = pipeline(dataset)
 
-    for next(iter(dataset)):
+    # Load the initial dataset
+    dataset = load_dataset("ag_news", split="test")
+
+    # Build configuration incrementally
+    pipeline_config = TextPipelineConfig(
+        dataset_name="ag_news",
+        dataset_split="test",
+        batch_size=5,
+        device="cpu",
+        columns=["text"]
+    ).with_encoder_model("text_sonar_basic_encoder")\
+     .with_decoder_model("text_sonar_basic_decoder")\
+     .with_source_lang("eng_Latn")\
+     .with_target_lang("eng_Latn")\
+     .with_num_shards(1)\
+     .with_shard_id(0)\
+     .with_cache_to_arrow(True)\
+     .with_output_file_name("ag_news_results")
+
+    # Initialize and run the text to embedding pipeline
+    text_to_embedding_pipeline = HFTextToEmbeddingPipeline(pipeline_config)
+    dataset = text_to_embedding_pipeline(dataset)
+
+    # Initialize and run the embedding to text pipeline
+    embedding_to_text_pipeline = HFEmbeddingToTextPipeline(pipeline_config)
+    dataset = embedding_to_text_pipeline(dataset)
+
+    # Initialize the metric pipeline config
+    metric_config = MetricPipelineConfig(
+        dataset_name="ag_news",
+        dataset_split="test",
+        batch_size=5,
+        device="cpu",
+        pipeline_type="text",
+        columns=["text"],
+        metric_name="bleu",
+        low_score_threshold=0.5
+    ).with_num_shards(1)\
+     .with_shard_id(0)\
+     .with_cache_to_arrow(True)\
+     .with_output_file_name("ag_news_results")
+
+    metrics_pipeline = MetricAnalyzerPipeline(metric_config)
+
+    # Run metrics pipeline
+    dataset = metrics_pipeline(dataset)
+
+    # Save the dataset to disk
+    dataset.save_to_disk(f'{pipeline_config.output_file_name}.arrow')
 
 
 if __name__ == "__main__":

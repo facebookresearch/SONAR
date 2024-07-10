@@ -1,6 +1,7 @@
+from sonar.inference_pipelines.text import EmbeddingToTextModelPipeline
 import logging
-from datasets import Dataset as HFDataset
-from sonar.inference_pipelines.text import TextToEmbeddingModelPipeline, EmbeddingToTextModelPipeline
+from datasets import Dataset
+from sonar.inference_pipelines.text import TextToEmbeddingModelPipeline
 from typing import List, Dict, Any
 from dataclasses import dataclass
 from .pipeline import Pipeline
@@ -11,31 +12,28 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class TextToTextHFPipeline(Pipeline):
+class HFTextToEmbeddingPipeline(Pipeline):
     """
-    A pipeline for encoding text datasets from HuggingFace into embeddings, decoding embeddings back into texts,
-    and evaluating the quality using metrics.
+    A pipeline for encoding text datasets from HuggingFace into embeddings.
     """
     config: TextPipelineConfig
 
     def __post_init__(self):
         """
-        Initializes the models.
+        Initializes the model.
         """
-        logger.info("Initializing models...")
+        logger.info("Initializing text to embedding model...")
         self.t2vec_model = TextToEmbeddingModelPipeline(
             encoder=self.config.encoder_model, tokenizer=self.config.encoder_model, device=self.config.device)
-        self.t2t_model = EmbeddingToTextModelPipeline(
-            decoder=self.config.decoder_model, tokenizer=self.config.encoder_model, device=self.config.device)
-        logger.info("Models initialized.")
+        logger.info("Model initialized.")
 
-    def process_batch(self, batch: Dict[str, Any], dataset: HFDataset) -> HFDataset:
+    def process_batch(self, batch: Dict[str, Any], dataset: Dataset) -> Dataset:
         """
-        Processes a single batch of data, encoding and decoding texts, and updating the dataset.
+        Processes a single batch of data by encoding texts into embeddings and updating the dataset.
 
         Args:
             batch (Dict[str, Any]): A batch of data containing texts.
-            dataset (HFDataset): The dataset to update.
+            dataset (Dataset): The dataset to update.
 
         Returns:
             HFDataset: The updated dataset.
@@ -43,10 +41,7 @@ class TextToTextHFPipeline(Pipeline):
         for column in self.config.columns:
             texts = batch[column]
             embeddings = self.encode_texts(texts)
-            reconstructed_texts = self.decode_embeddings(embeddings)
             dataset = dataset.add_column(column + '_embeddings', embeddings)
-            dataset = dataset.add_column(
-                column + '_reconstructed', reconstructed_texts)
         return dataset
 
     def encode_texts(self, texts: List[str]) -> List[Dict[str, Any]]:
@@ -68,6 +63,41 @@ class TextToTextHFPipeline(Pipeline):
         except Exception as e:
             logger.error(f"Error encoding texts: {e}")
             raise
+
+
+@dataclass
+class HFEmbeddingToTextPipeline(Pipeline):
+    """
+    A pipeline for decoding embeddings back into texts.
+    """
+    config: TextPipelineConfig
+
+    def __post_init__(self):
+        """
+        Initializes the model.
+        """
+        logger.info("Initializing embedding to text model...")
+        self.t2t_model = EmbeddingToTextModelPipeline(
+            decoder=self.config.decoder_model, tokenizer=self.config.encoder_model, device=self.config.device)
+        logger.info("Model initialized.")
+
+    def process_batch(self, batch: Dict[str, Any], dataset: Dataset) -> Dataset:
+        """
+        Processes a single batch of data by decoding embeddings back into texts and updating the dataset.
+
+        Args:
+            batch (Dict[str, Any]): A batch of data containing embeddings.
+            dataset (HFDataset): The dataset to update.
+
+        Returns:
+            HFDataset: The updated dataset.
+        """
+        for column in self.config.columns:
+            embeddings = batch[column + '_embeddings']
+            reconstructed_texts = self.decode_embeddings(embeddings)
+            dataset = dataset.add_column(
+                column + '_reconstructed', reconstructed_texts)
+        return dataset
 
     def decode_embeddings(self, embeddings: List[Any]) -> List[str]:
         """
