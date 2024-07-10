@@ -4,7 +4,7 @@ from datasets import load_dataset, Dataset
 from sonar.inference_pipelines.text import TextToEmbeddingModelPipeline, EmbeddingToTextModelPipeline
 from dataclasses import dataclass, field
 from typing import List, Dict, Any
-from .pipeline_config import PipelineConfig
+from .pipeline_config import TextPipelineConfig
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ class SonarHFTextToTextPipeline:
     A pipeline for encoding text datasets from HuggingFace into embeddings, decoding embeddings back to texts,
     and evaluating the quality using metrics.
     """
-    config: PipelineConfig
+    config: TextPipelineConfig
     results: List[Dict[str, Any]] = field(default_factory=list)
 
     def __post_init__(self):
@@ -47,7 +47,7 @@ class SonarHFTextToTextPipeline:
         try:
             logger.info(f"Encoding {len(texts)} texts...")
             embeddings = self.t2vec_model.predict(
-                texts, source_lang=self.config.source_lang, batch_size=self.config.batch_size)
+                texts, source_lang=self.config.source_lang, batch_size=self.config.batch_size, )
             logger.info("Texts encoded successfully.")
             return embeddings
         except Exception as e:
