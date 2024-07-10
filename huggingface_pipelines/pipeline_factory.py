@@ -1,5 +1,5 @@
-from .text_to_text_hf_pipeline import TextToTextHFPipeline
-from .audio_to_text_hf_pipeline import AudioToTextHFPipeline
+from .text import TextToTextHFPipeline
+from .speech import AudioToTextHFPipeline
 from .pipeline_config import PipelineConfig, TextPipelineConfig, ASRPipelineConfig
 from .pipeline import Pipeline
 

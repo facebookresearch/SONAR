@@ -1,11 +1,12 @@
 import json
 import logging
 from datasets import load_dataset, Dataset
-from sonar.inference_pipelines.audio import AudioToTextModelPipeline
-from dataclasses import dataclass, field
 from typing import List, Dict, Any
+from dataclasses import dataclass
 from .pipeline import Pipeline
 from .pipeline_config import ASRPipelineConfig
+from sonar.inference_pipelines.speech import SpeechInferenceParams, SpeechToTextPipeline
+import torch
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,8 +28,10 @@ class AudioToTextHFPipeline(Pipeline):
         self.dataset = load_dataset(
             self.config.dataset_name, split=self.config.dataset_split)
         logger.info("Dataset loaded. Initializing models...")
-        self.asr_model = AudioToTextModelPipeline(
-            model=self.config.model_name, tokenizer=self.config.model_name, device=self.config.device)
+        self.speech_to_text_pipeline = SpeechToTextPipeline.load_from_name(
+            encoder_name=self.config.encoder_model,
+            decoder_name=self.config.decoder_model
+        )
         logger.info("Models initialized.")
 
     def transcribe_audio(self, audio_data: List[Any]) -> List[str]:
@@ -43,8 +46,23 @@ class AudioToTextHFPipeline(Pipeline):
         """
         try:
             logger.info(f"Transcribing {len(audio_data)} audio samples...")
-            transcriptions = self.asr_model.predict(
-                audio_data, batch_size=self.config.batch_size)
+            speech_ctx = SpeechInferenceParams(
+                data_file=self.config.data_file,
+                audio_root_dir=self.config.audio_root_dir,
+                audio_path_index=self.config.audio_path_index,
+                target_lang=self.config.target_lang,
+                batch_size=self.config.batch_size,
+                pad_idx=self.config.pad_idx,
+                device=self.config.device,
+                fbank_dtype=self.config.fbank_dtype,
+                n_parallel=self.config.n_parallel
+            )
+            speech_to_text_dp = self.speech_to_text_pipeline.build_pipeline(
+                speech_ctx)
+            transcriptions = []
+            with torch.inference_mode():
+                for batch in speech_to_text_dp:
+                    transcriptions.extend(batch)
             logger.info("Audio transcribed successfully.")
             return transcriptions
         except Exception as e:
@@ -100,3 +118,4 @@ class AudioToTextHFPipeline(Pipeline):
             logger.info("Results cached successfully.")
         except Exception as e:
             logger.error(f"Error caching results: {e}")
+

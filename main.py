@@ -1,5 +1,5 @@
 import logging
-from huggingface_pipelines.pipeline_config import PipelineConfig, MetricConfig
+from huggingface_pipelines.pipeline_config import TextPipelineConfig, MetricConfig
 from huggingface_pipelines.pipeline_factory import PipelineFactory
 from huggingface_pipelines.metric_analyzer_factory import MetricAnalyzerFactory
 
@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 def main():
 
-    pipeline_config = PipelineConfig(
+    pipeline_config = TextPipelineConfig(
         encoder_model="text_sonar_basic_encoder",
         decoder_model="text_sonar_basic_decoder",
         dataset_name="ag_news",
@@ -22,7 +22,7 @@ def main():
         shard_id=0,
         device="cpu",
         cache_to_arrow=True,
-        output_file_name="ag_news_results"
+        output_file_name="ag_news_results",
     )
 
     metric_config = MetricConfig(
