@@ -6,9 +6,6 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Any
 from .pipeline_config import TextPipelineConfig
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 
 @dataclass
 class SonarHFTextToTextPipeline:
