@@ -1,0 +1,56 @@
+# @package _global_
+
+defaults:
+  - base_config
+  - _self_
+  - run: local
+
+common:
+  eval_print_samples: true
+
+model:
+  name_or_path: ???
+  feature_dim: 768
+  lower_case: true
+  from_scratch: true
+  dropout: 0.3
+  classifier_dropout: 0.3
+  attention_dropout: 0.3
+  activation_dropout: 0.3
+  activation_fn: "relu"
+  decoder_embed_dim: 256
+  decoder_attention_heads: 4
+  decoder_ffn_embed_dim: 1024
+  decoder_layerdrop: 0.0
+  decoder_layers: 3
+  decoder_normalize_before: true
+  decoder_output_dim: 256
+  encoder_embed_dim: 256
+  encoder_attention_heads: 4
+  encoder_ffn_embed_dim: 1024
+  encoder_layerdrop: 0.0
+  encoder_layers: 6
+  encoder_normalize_before: true
+  layernorm_embedding: true
+  no_scale_embedding: false
+  num_hidden_layers: 6
+  share_decoder_input_output_embed: true
+
+data:
+  train_data_dirs: ???
+  val_data_dir: ???
+  
+wandb:
+  project: slt-tarres-fairseq
+
+optim:
+  train_batch_size: 32
+  val_batch_size: 64
+  gradient_accumulation_steps: 1
+  warmup_epochs: 10
+  lr: 0.001
+  min_lr: 1e-4
+  early_stopping: true
+  patience: 80
+
+fairseq: true

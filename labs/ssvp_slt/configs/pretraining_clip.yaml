@@ -1,0 +1,38 @@
+# @package _global_
+
+defaults:
+  - base_config
+  - _self_
+  - run: local
+
+common:
+  fp16: false
+
+model:
+  gradnorm_alpha: 1.0
+
+data:
+  base_data_dir: ???
+  dataset_names: ???
+  video_backend: pyav
+  num_frames: 128
+  sampling_rate: 2
+  target_fps: 25
+  min_duration: 1.0
+  max_duration: 40.0
+  rand_aug: true
+
+wandb:
+  enabled: true
+  project: ssvp-pretraining-clip
+
+optim:
+  batch_size: 4
+  warmup_epochs: 10
+  epochs: 200
+  lr: 1e-4
+  min_lr: 1e-6
+  clip_grad: 1.0
+  lr_gradnorm: 1e-2
+  min_lr_gradnorm: 1e-4
+  warmup_epochs_gradnorm: 1

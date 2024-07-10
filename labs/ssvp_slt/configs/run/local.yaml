@@ -1,0 +1,22 @@
+# @package _global_
+
+hydra:
+  sweep:
+    dir: ${oc.env:PWD}/debug
+    subdir: ${hydra.job.config_name}/${hydra.job.override_dirname}
+  job:
+    config:
+      override_dirname:
+        kv_sep: '.'
+        item_sep: '.'
+        exclude_keys:
+          - run
+          - hydra
+          - wandb.project
+          - common.load_model
+          - data.train_data_dirs
+          - data.val_data_dir
+dist:
+  world_size: 1
+  local_rank: -1
+  enabled: false

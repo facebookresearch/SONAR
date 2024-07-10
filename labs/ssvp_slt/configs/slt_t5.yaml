@@ -1,0 +1,43 @@
+# @package _global_
+
+defaults:
+  - base_config
+  - _self_
+  - run: local
+
+common:
+  eval_print_samples: true
+  fp16: false
+  eval_steps: 1000
+
+model:
+  name_or_path: google/t5-v1_1-base
+  feature_dim: 768
+  from_scratch: false
+  dropout: 0.3
+
+data:
+  train_data_dirs: ???
+  val_data_dir: ???
+  num_epochs_extracted: 1
+  min_source_positions: 5
+  max_source_positions: 1024
+  max_target_positions: 128
+
+wandb:
+  enabled: true
+  project: ssvp-t5
+
+optim:
+  train_batch_size: 4
+  val_batch_size: 32
+  gradient_accumulation_steps: 2
+  warmup_epochs: 2
+  epochs: 100
+  lr: 5e-4
+  min_lr: 1e-7
+  early_stopping: true
+  patience: 25
+
+criterion:
+  label_smoothing: 0.2

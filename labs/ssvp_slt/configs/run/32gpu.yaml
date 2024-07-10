@@ -1,0 +1,48 @@
+# @package _global_
+
+defaults:
+  - override /hydra/launcher: submitit_slurm
+
+hydra:
+  callbacks:
+    log_job_return:
+      _target_: hydra.experimental.callbacks.LogJobReturnCallback
+  verbose: true
+  launcher:
+    _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+    cpus_per_task: 10
+    gpus_per_node: 8
+    tasks_per_node: 8
+    nodes: 4
+    comment: null
+    mem_gb: 192
+    timeout_min: 4320
+    max_num_timeout: 100
+    partition: gpu
+    name: ${hydra.job.config_name}/${hydra.job.override_dirname}
+    submitit_folder: ${hydra.sweep.dir}/submitit/%j
+    array_parallelism: 16
+    setup: [
+      "export MASTER_ADDR=$(hostname -s)",
+      "export MASTER_PORT=$(python -c 'import socket; s=socket.socket(); s.bind((\"\", 0)); print(s.getsockname()[1]); s.close()')",
+      "export WANDB_API_KEY=${oc.env:WANDB_API_KEY}",
+    ]
+  sweep:
+    dir: /checkpoint/${oc.env:USER}/experiments/sweeps
+    subdir: ${hydra.job.config_name}/${hydra.job.override_dirname}
+  job:
+    config:
+      override_dirname:
+        kv_sep: '.'
+        item_sep: '.'
+        exclude_keys:
+          - run
+          - hydra
+          - wandb.project
+          - common.load_model
+          - data.train_data_dirs
+          - data.val_data_dir
+
+dist:
+  world_size: 32
+  enabled: true
