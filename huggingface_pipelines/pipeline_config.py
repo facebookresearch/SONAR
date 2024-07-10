@@ -18,6 +18,8 @@ class PipelineConfig(ABC):
         shard_id (int): The ID of the shard to process. Defaults to 0.
         cache_to_arrow (bool): Whether to cache results to Arrow format. Defaults to False.
         output_file_name (str): The base name of the file where results will be saved. Defaults to "results".
+        take (int): The number of batches to take for processing. Defaults to -1 (process all).
+
     """
     dataset_name: str
     columns: List[str]
@@ -28,6 +30,7 @@ class PipelineConfig(ABC):
     shard_id: int = 0
     cache_to_arrow: bool = False
     output_file_name: str = "results"
+    take: int = -1
 
     def with_dataset_name(self, dataset_name: str):
         return replace(self, dataset_name=dataset_name)
@@ -58,6 +61,9 @@ class PipelineConfig(ABC):
 
     def with_columns(self, columns: List[str]):
         return replace(self, columns=columns)
+
+    def with_take(self, take: int):
+        return replace(self, take=take)
 
 
 @dataclass
