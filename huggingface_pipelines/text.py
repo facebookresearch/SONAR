@@ -2,19 +2,22 @@ import json
 import logging
 from datasets import load_dataset, Dataset
 from sonar.inference_pipelines.text import TextToEmbeddingModelPipeline, EmbeddingToTextModelPipeline
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Dict, Any
+from .pipeline import Pipeline
 from .pipeline_config import TextPipelineConfig
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 @dataclass
-class SonarHFTextToTextPipeline:
+class TextToTextHFPipeline(Pipeline):
     """
-    A pipeline for encoding text datasets from HuggingFace into embeddings, decoding embeddings back to texts,
+    A pipeline for encoding text datasets from HuggingFace into embeddings, decoding embeddings back into texts,
     and evaluating the quality using metrics.
     """
     config: TextPipelineConfig
-    results: List[Dict[str, Any]] = field(default_factory=list)
 
     def __post_init__(self):
         """
@@ -44,7 +47,7 @@ class SonarHFTextToTextPipeline:
         try:
             logger.info(f"Encoding {len(texts)} texts...")
             embeddings = self.t2vec_model.predict(
-                texts, source_lang=self.config.source_lang, batch_size=self.config.batch_size, )
+                texts, source_lang=self.config.source_lang, batch_size=self.config.batch_size)
             logger.info("Texts encoded successfully.")
             return embeddings
         except Exception as e:
@@ -71,22 +74,6 @@ class SonarHFTextToTextPipeline:
             logger.error(f"Error decoding texts: {e}")
             raise
 
-    def process_column(self, texts: List[str], column_name: str) -> Dict[str, Any]:
-        """
-        Processes a single column of texts, returning original, reconstructed texts and metric score.
-
-        Args:
-            texts (List[str]): A list of texts to be processed.
-            column_name (str): The name of the column being processed.
-
-        Returns:
-            Dict[str, Any]: A dictionary containing original texts, reconstructed texts, and column name.
-        """
-        logger.info(f"Processing column '{column_name}'...")
-        embeddings = self.encode_texts(texts)
-        reconstructed_texts = self.decode_embeddings(embeddings)
-        return {'original': texts, 'reconstructed': reconstructed_texts, 'column': column_name}
-
     def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
         """
         Processes a single batch of data, returning original, reconstructed texts and metric score.
@@ -95,54 +82,16 @@ class SonarHFTextToTextPipeline:
             batch (Dict[str, Any]): A batch of data containing texts.
 
         Returns:
-            Dict[str, Any]: A dictionary containing processed results for each column.
+            Dict[str, Any]: A dictionary containing original texts, reconstructed texts, and column name.
         """
         results = {}
         for column in self.config.columns:
             texts = batch[column]
-            results[column] = self.process_column(texts, column)
+            embeddings = self.encode_texts(texts)
+            reconstructed_texts = self.decode_embeddings(embeddings)
+            results[column] = {'original': texts,
+                               'reconstructed': reconstructed_texts}
         return results
-
-    def process_batches(self):
-        """
-        Processes all batches in the dataset and stores the results.
-        Splits the dataset into shards and processes the specified shard.
-        """
-        try:
-            logger.info("Starting to process batches...")
-            if self.config.num_shards == 1:
-                # Process the entire dataset
-                dataset_shard = self.dataset
-            else:
-                # Select the shard
-                dataset_shard = self.dataset.shard(
-                    num_shards=self.config.num_shards, index=self.config.shard_id)
-
-            # Process the shard or entire dataset
-            results = dataset_shard.map(
-                lambda batch: self.process_batch(batch),
-                batched=True,
-                batch_size=self.config.batch_size,
-                remove_columns=dataset_shard.column_names,
-                load_from_cache_file=False
-            )
-            for result in results:
-                for column, column_result in result.items():
-                    self.results.append({
-                        'column': column,
-                        'original': column_result['original'],
-                        'reconstructed': column_result['reconstructed']
-                    })
-
-            logger.info("Data processed. Caching results...")
-            if self.config.cache_to_arrow:
-                self.cache_results_arrow()
-                logger.info("Results cached successfully to Arrow file.")
-            else:
-                self.cache_results()
-                logger.info("Results cached successfully to disk.")
-        except Exception as e:
-            logger.error(f"Error processing batches: {e}")
 
     def cache_results(self):
         """
@@ -163,13 +112,12 @@ class SonarHFTextToTextPipeline:
         """
         Caches the results to an Arrow file.
 
-        The results are saved in a file named 'output_file_name_shard_{shard_id}.arrow'.
+        The results are saved in a file named 'output_file_name_shard_{self.config.shard_id}.arrow'.
         """
         try:
             file_name = f'{self.config.output_file_name}_shard_{self.config.shard_id}.arrow'
             logger.info(f"Caching results to {file_name}...")
             dataset = Dataset.from_dict({
-                "column": [result['column'] for result in self.results],
                 "original": [result['original'] for result in self.results],
                 "reconstructed": [result['reconstructed'] for result in self.results]
             })

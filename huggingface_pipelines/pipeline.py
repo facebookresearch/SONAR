@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any
+from typing import Dict, Any
 import logging
+from .pipeline_config import PipelineConfig
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -11,7 +12,7 @@ class Pipeline(ABC):
     Abstract base class for different pipelines.
     """
 
-    def __init__(self, config):
+    def __init__(self, config: PipelineConfig):
         self.config = config
         self.results = []
 
