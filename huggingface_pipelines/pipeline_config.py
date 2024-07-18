@@ -1,6 +1,52 @@
 from abc import ABC
 from dataclasses import dataclass, replace
-from typing import List
+from typing import List, TypedDict
+
+
+class PipelineOverwrites(TypedDict, total=False):
+    batch_size: int
+    device: str
+    cache_to_arrow: bool
+    take: int
+    output_dir: str
+    output_file_name: str
+    columns: List[str]
+
+
+class DatasetOverwrites(TypedDict, total=False):
+    dataset_name: str
+    dataset_split: str
+    num_shards: int
+    shard_id: int
+    cache_dir: str
+
+
+class TextToEmbeddingOverwrites(PipelineOverwrites, total=False):
+    encoder_model: str
+    source_lang: str
+
+
+class EmbeddingToTextOverwrites(PipelineOverwrites, total=False):
+    decoder_model: str
+    target_lang: str
+
+
+class AudioOverwrites(PipelineOverwrites, total=False):
+    encoder_model: str
+    decoder_model: str
+    reference_transcriptions: str
+    data_file: str
+    audio_root_dir: str
+    audio_path_index: int
+    target_lang: str
+    pad_idx: int
+    fbank_dtype: str
+    n_parallel: int
+
+
+class MetricOverwrites(PipelineOverwrites, total=False):
+    metric_name: str
+    low_score_threshold: float
 
 
 @dataclass
@@ -17,53 +63,73 @@ class PipelineConfig(ABC):
         num_shards (int): The number of shards to split the dataset into. Defaults to 1.
         shard_id (int): The ID of the shard to process. Defaults to 0.
         cache_to_arrow (bool): Whether to cache results to Arrow format. Defaults to False.
-        output_file_name (str): The base name of the file where results will be saved. Defaults to "results".
+        output_dir (str): The directory to save the output to. Defaults to 'results'.
         take (int): The number of batches to take for processing. Defaults to -1 (process all).
 
     """
-    dataset_name: str
     columns: List[str]
-    dataset_split: str = "test"
-    batch_size: int = 5
-    device: str = "cpu"
+    batch_size: int
+    device: str
+    take: int
+    output_dir: str
+    output_file_name: str
+    cache_to_arrow: bool = False
+
+    def with_overwrites(self, overwrites: PipelineOverwrites):
+        return replace(self, **overwrites)
+
+# TODO: Apply transformer to detect language : Not critical
+
+
+@dataclass
+class DatasetConfig():
+    """
+    Configuration class for loading and sharding datasets.
+
+    Attributes:
+        dataset_name (str): The name of the dataset to load.
+        dataset_split (str): The split of the dataset to use (e.g., 'train', 'test', 'validation').
+        num_shards (int): The number of shards to split the dataset into. Defaults to 1.
+        shard_id (int): The ID of the shard to retrieve. Defaults to 0.
+        cache_dir (str): The directory to cache the loaded dataset. Defaults to None.
+        keep_in_memory (bool): Whether to keep the dataset in memory after loading. Defaults to False.
+        trust_remote_code (bool): Whether to trust remote code when loading the dataset. Defaults to False.
+    """
+    dataset_name: str
+    dataset_split: str
+    config: str = None
     num_shards: int = 1
     shard_id: int = 0
-    cache_to_arrow: bool = False
-    output_file_name: str = "results"
-    take: int = -1
+    cache_dir: str = None
+    trust_remote_code: bool = False
 
-    def with_dataset_name(self, dataset_name: str):
-        return replace(self, dataset_name=dataset_name)
+    def load_dataset(self):
+        """
+        Loads and shards the dataset based on the configuration settings.
 
-    def with_dataset_split(self, dataset_split: str):
-        return replace(self, dataset_split=dataset_split)
+        Returns:
+            datasets.Dataset: The loaded and sharded dataset.
+        """
+        from datasets import load_dataset
 
-    def with_batch_size(self, batch_size: int):
-        return replace(self, batch_size=batch_size)
+        # Load the dataset
+        dataset = load_dataset(
+            self.dataset_name,
+            split=self.dataset_split,
+            cache_dir=self.cache_dir,
+            trust_remote_code=self.trust_remote_code,
+            config=self.config
+        )
 
-    def with_device(self, device: str):
-        return replace(self, device=device)
+        # Shard the dataset
+        if self.num_shards > 1:
+            dataset = dataset.shard(
+                num_shards=self.num_shards, index=self.shard_id)
 
-    def with_pipeline_type(self, pipeline_type: str):
-        return replace(self, pipeline_type=pipeline_type)
+        return dataset
 
-    def with_num_shards(self, num_shards: int):
-        return replace(self, num_shards=num_shards)
-
-    def with_shard_id(self, shard_id: int):
-        return replace(self, shard_id=shard_id)
-
-    def with_cache_to_arrow(self, cache_to_arrow: bool):
-        return replace(self, cache_to_arrow=cache_to_arrow)
-
-    def with_output_file_name(self, output_file_name: str):
-        return replace(self, output_file_name=output_file_name)
-
-    def with_columns(self, columns: List[str]):
-        return replace(self, columns=columns)
-
-    def with_take(self, take: int):
-        return replace(self, take=take)
+    def with_overwrites(self, overwrites: DatasetOverwrites):
+        return replace(self, **overwrites)
 
 
 @dataclass
@@ -78,11 +144,8 @@ class TextToEmbeddingPipelineConfig(PipelineConfig):
     encoder_model: str = "text_sonar_basic_encoder"
     source_lang: str = "eng_Latn"
 
-    def with_encoder_model(self, encoder_model: str):
-        return replace(self, encoder_model=encoder_model)
-
-    def with_source_lang(self, source_lang: str):
-        return replace(self, source_lang=source_lang)
+    def with_overwrites(self, overwrites: TextToEmbeddingOverwrites):
+        return replace(self, **overwrites)
 
 
 @dataclass
@@ -97,67 +160,24 @@ class EmbeddingToTextPipelineConfig(PipelineConfig):
     decoder_model: str = "text_sonar_basic_decoder"
     target_lang: str = "eng_Latn"
 
-    def with_decoder_model(self, decoder_model: str):
-        return replace(self, decoder_model=decoder_model)
-
-    def with_target_lang(self, target_lang: str):
-        return replace(self, target_lang=target_lang)
+    def with_overwrites(self, overwrites: EmbeddingToTextOverwrites):
+        return replace(self, **overwrites)
 
 
 @dataclass
 class AudioPipelineConfig(PipelineConfig):
     """
     Configuration class for ASR pipelines.
-
-    Attributes:
-        model_name (str): The name or path of the model to be used for transcribing audio to text.
-        audio_column (str): The column of the dataset containing audio data.
-        reference_transcriptions (str): The column of the dataset containing reference transcriptions.
-        data_file (str): The file containing audio data paths and metadata.
-        audio_root_dir (str): The root directory where audio files are stored.
-        audio_path_index (int): The index of the audio path in the data file.
-        target_lang (str): The target language for transcription.
-        pad_idx (int): Padding index for batching.
-        fbank_dtype (str): The data type for filter bank features.
-        n_parallel (int): Number of parallel workers.
     """
-    encoder_model = "sonar_speech_encoder_eng"
-    decoder_model = "text_sonar_basic_decoder"
-    reference_transcriptions: str = "reference_transcription"
-    data_file: str = None
-    audio_root_dir: str = None
-    audio_path_index: int = None
+    encoder_model: str = "sonar_speech_encoder_eng"
+    decoder_model: str = "text_sonar_basic_decoder"
     target_lang: str = None
     pad_idx: int = 0
     fbank_dtype: str = None
     n_parallel: int = 4
 
-    def with_model_name(self, model_name: str):
-        return replace(self, model_name=model_name)
-
-    def with_reference_transcriptions(self, reference_transcriptions: str):
-        return replace(self, reference_transcriptions=reference_transcriptions)
-
-    def with_data_file(self, data_file: str):
-        return replace(self, data_file=data_file)
-
-    def with_audio_root_dir(self, audio_root_dir: str):
-        return replace(self, audio_root_dir=audio_root_dir)
-
-    def with_audio_path_index(self, audio_path_index: int):
-        return replace(self, audio_path_index=audio_path_index)
-
-    def with_target_lang(self, target_lang: str):
-        return replace(self, target_lang=target_lang)
-
-    def with_pad_idx(self, pad_idx: int):
-        return replace(self, pad_idx=pad_idx)
-
-    def with_fbank_dtype(self, fbank_dtype: str):
-        return replace(self, fbank_dtype=fbank_dtype)
-
-    def with_n_parallel(self, n_parallel: int):
-        return replace(self, n_parallel=n_parallel)
+    def with_overwrites(self, overwrites: AudioOverwrites):
+        return replace(self, **overwrites)
 
 
 @dataclass
@@ -172,8 +192,5 @@ class MetricPipelineConfig(PipelineConfig):
     metric_name: str = "bleu"
     low_score_threshold: float = 0.5
 
-    def with_metric_name(self, metric_name: str):
-        return replace(self, metric_name=metric_name)
-
-    def with_low_score_threshold(self, low_score_threshold: float):
-        return replace(self, low_score_threshold=low_score_threshold)
+    def with_overwrites(self, overwrites: MetricOverwrites):
+        return replace(self, **overwrites)

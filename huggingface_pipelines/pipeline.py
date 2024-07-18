@@ -3,6 +3,7 @@ from typing import Dict, Any
 import logging
 from datasets import Dataset
 from .pipeline_config import PipelineConfig
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -43,22 +44,25 @@ class Pipeline(ABC):
         try:
             logger.info("Starting to process dataset...")
 
-            if self.config.num_shards > 1:
-                dataset = dataset.shard(
-                    num_shards=self.config.num_shards, index=self.config.shard_id)
-
             if self.config.take > 0:
                 dataset = dataset.select(
                     range(self.config.take * self.config.batch_size))
+
+            cache_file_name = f"cache_{self.__class__.__name__}_{self.config.dataset_name}_{self.config.dataset_split}.arrow"
+            cache_file_path = os.path.join(
+                self.config.output_dir, cache_file_name)
 
             updated_dataset = dataset.map(
                 lambda batch: self.process_batch(batch),
                 batched=True,
                 batch_size=self.config.batch_size,
-                load_from_cache_file=False
+                load_from_cache_file=self.config.cache_to_arrow,
+                cache_file_name=cache_file_path if self.config.cache_to_arrow else None
+
             )
+
+            updated_dataset
             return updated_dataset
         except Exception as e:
             logger.error(f"Error processing dataset: {e}")
             raise
-

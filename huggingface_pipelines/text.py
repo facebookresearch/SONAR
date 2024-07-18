@@ -39,10 +39,10 @@ class HFEmbeddingToTextPipeline(Pipeline):
             Dict[str, List[str]]: The batch with reconstructed texts added.
         """
         for column in self.config.columns:
-            embeddings = batch[column + '_embeddings']
+            embeddings = batch[column]
             logger.info(f"Embeddings: {embeddings}")
             reconstructed_texts = self.decode_embeddings(embeddings)
-            batch[column + '_reconstructed'] = reconstructed_texts
+            batch[f"{column}_reconstructed"] = reconstructed_texts
         return batch
 
     def decode_embeddings(self, embeddings: List[Any]) -> List[str]:
@@ -96,7 +96,7 @@ class HFTextToEmbeddingPipeline(Pipeline):
         for column in self.config.columns:
             texts = batch[column]
             embeddings = self.encode_texts(texts)
-            batch[column + '_embeddings'] = embeddings
+            batch[f'{column}_embeddings'] = embeddings
         return batch
 
     def encode_texts(self, texts: List[str]) -> torch.Tensor:
