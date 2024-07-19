@@ -30,13 +30,10 @@ class PipelineConfig(ABC):
         dataset_split (str): The dataset split to be used (e.g., 'train', 'test', 'validation').
         batch_size (int): The batch size to be used for processing.
         device (str): The device to use for inference (e.g., 'cpu', 'cuda').
-        pipeline_type (str): The type of pipeline (e.g., 'text', 'audio').
-        num_shards (int): The number of shards to split the dataset into. Defaults to 1.
-        shard_id (int): The ID of the shard to process. Defaults to 0.
         cache_to_arrow (bool): Whether to cache results to Arrow format. Defaults to False.
         output_dir (str): The directory to save the output to. Defaults to 'results'.
         take (int): The number of batches to take for processing. Defaults to -1 (process all).
-        dataset_uuid (str): The id for the dataset instance, this is used for caching. Defaults to None.
+        dataset_uuid (str): The id for the Dataset instance, this is used for caching. Defaults to None.
 
     """
     columns: List[str]
