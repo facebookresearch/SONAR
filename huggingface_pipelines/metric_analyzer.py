@@ -37,7 +37,6 @@ class MetricAnalyzerPipeline(Pipeline):
     config: MetricPipelineConfig
 
     def __post_init__(self):
-        self.results = []
         logger.info(f"Loading metric: {self.config.metric_name}...")
         self.metric = load(self.config.metric_name)
         logger.info(f"Metric {self.config.metric_name} loaded successfully.")
