@@ -13,10 +13,6 @@ logger = logging.getLogger(__name__)
 class AudioOverwrites(PipelineOverwrites, total=False):
     encoder_model: str
     decoder_model: str
-    reference_transcriptions: str
-    data_file: str
-    audio_root_dir: str
-    audio_path_index: int
     target_lang: str
     pad_idx: int
     fbank_dtype: str
