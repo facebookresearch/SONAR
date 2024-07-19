@@ -1,14 +1,42 @@
 import logging
 from datasets import Dataset
 from typing import List, Dict, Any
-from dataclasses import dataclass
-from .pipeline import Pipeline
-from .pipeline_config import AudioPipelineConfig
+from dataclasses import dataclass, replace
+from .pipeline import Pipeline, PipelineOverwrites, PipelineConfig
 from sonar.inference_pipelines.speech import SpeechInferenceParams, SpeechToTextPipeline
 import torch
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+class AudioOverwrites(PipelineOverwrites, total=False):
+    encoder_model: str
+    decoder_model: str
+    reference_transcriptions: str
+    data_file: str
+    audio_root_dir: str
+    audio_path_index: int
+    target_lang: str
+    pad_idx: int
+    fbank_dtype: str
+    n_parallel: int
+
+
+@dataclass
+class AudioPipelineConfig(PipelineConfig):
+    """
+    Configuration class for ASR pipelines.
+    """
+    encoder_model: str = "sonar_speech_encoder_eng"
+    decoder_model: str = "text_sonar_basic_decoder"
+    target_lang: str = None
+    pad_idx: int = 0
+    fbank_dtype: str = None
+    n_parallel: int = 4
+
+    def with_overwrites(self, overwrites: AudioOverwrites):
+        return replace(self, **overwrites)
 
 
 @dataclass

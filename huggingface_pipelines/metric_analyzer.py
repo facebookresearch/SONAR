@@ -1,12 +1,32 @@
 import logging
 from typing import List, Dict, Any
-from dataclasses import dataclass
-from .pipeline import Pipeline
-from .pipeline_config import MetricPipelineConfig
+from dataclasses import dataclass, replace
+from .pipeline import Pipeline, PipelineOverwrites, PipelineConfig
 from datasets import Dataset
 from evaluate import load
 
 logger = logging.getLogger(__name__)
+
+
+class MetricOverwrites(PipelineOverwrites, total=False):
+    metric_name: str
+    low_score_threshold: float
+
+
+@dataclass
+class MetricPipelineConfig(PipelineConfig):
+    """
+    Configuration class for metrics.
+
+    Attributes:
+        metric_name (str): The name of the metric to be used for evaluation.
+        low_score_threshold (float): The threshold below which the score is considered low.
+    """
+    metric_name: str = "bleu"
+    low_score_threshold: float = 0.5
+
+    def with_overwrites(self, overwrites: MetricOverwrites):
+        return replace(self, **overwrites)
 
 
 @dataclass
@@ -77,9 +97,6 @@ class MetricAnalyzerPipeline(Pipeline):
         """
         try:
             logger.info("Starting to process dataset...")
-            if self.config.num_shards > 1:
-                dataset = dataset.shard(
-                    num_shards=self.config.num_shards, index=self.config.shard_id)
 
             updated_dataset = dataset.map(
                 lambda batch: self.process_batch(batch),
@@ -92,4 +109,3 @@ class MetricAnalyzerPipeline(Pipeline):
         except Exception as e:
             logger.error(f"Error processing dataset: {e}")
             raise
-

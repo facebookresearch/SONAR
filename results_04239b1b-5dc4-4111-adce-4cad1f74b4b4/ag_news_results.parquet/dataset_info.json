@@ -1,0 +1,107 @@
+{
+  "builder_name": "parquet",
+  "citation": "",
+  "config_name": "default",
+  "dataset_name": "ag_news",
+  "dataset_size": 31712727,
+  "description": "",
+  "download_checksums": {
+    "hf://datasets/ag_news@eb185aade064a813bc0b7f42de02595523103ca4/data/train-00000-of-00001.parquet": {
+      "num_bytes": 18585438,
+      "checksum": null
+    },
+    "hf://datasets/ag_news@eb185aade064a813bc0b7f42de02595523103ca4/data/test-00000-of-00001.parquet": {
+      "num_bytes": 1234829,
+      "checksum": null
+    }
+  },
+  "download_size": 19820267,
+  "features": {
+    "text": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "label": {
+      "names": [
+        "World",
+        "Sports",
+        "Business",
+        "Sci/Tech"
+      ],
+      "_type": "ClassLabel"
+    },
+    "text_sentences": {
+      "feature": {
+        "dtype": "string",
+        "_type": "Value"
+      },
+      "_type": "Sequence"
+    },
+    "text_embeddings": {
+      "feature": {
+        "feature": {
+          "dtype": "float32",
+          "_type": "Value"
+        },
+        "_type": "Sequence"
+      },
+      "_type": "Sequence"
+    },
+    "text_reconstructed": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "text_metric_score": {
+      "bleu": {
+        "dtype": "float64",
+        "_type": "Value"
+      },
+      "brevity_penalty": {
+        "dtype": "float64",
+        "_type": "Value"
+      },
+      "length_ratio": {
+        "dtype": "float64",
+        "_type": "Value"
+      },
+      "precisions": {
+        "feature": {
+          "dtype": "float64",
+          "_type": "Value"
+        },
+        "_type": "Sequence"
+      },
+      "reference_length": {
+        "dtype": "int64",
+        "_type": "Value"
+      },
+      "translation_length": {
+        "dtype": "int64",
+        "_type": "Value"
+      }
+    }
+  },
+  "homepage": "",
+  "license": "",
+  "size_in_bytes": 51532994,
+  "splits": {
+    "train": {
+      "name": "train",
+      "num_bytes": 29832303,
+      "num_examples": 120000,
+      "dataset_name": "ag_news"
+    },
+    "test": {
+      "name": "test",
+      "num_bytes": 1880424,
+      "num_examples": 7600,
+      "dataset_name": "ag_news"
+    }
+  },
+  "version": {
+    "version_str": "0.0.0",
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  }
+}

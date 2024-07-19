@@ -1,12 +1,55 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import List, TypedDict, Dict, Any
 import logging
+from dataclasses import dataclass, replace
 from datasets import Dataset
-from .pipeline_config import PipelineConfig
 import os
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+class PipelineOverwrites(TypedDict, total=False):
+    batch_size: int
+    device: str
+    cache_to_arrow: bool
+    take: int
+    output_dir: str
+    output_file_name: str
+    columns: List[str]
+
+
+@dataclass
+class PipelineConfig(ABC):
+    """
+    Abstract base class for pipeline configurations.
+
+    Attributes:
+        dataset_name (str): The name of the HuggingFace dataset to be used.
+        dataset_split (str): The dataset split to be used (e.g., 'train', 'test', 'validation').
+        batch_size (int): The batch size to be used for processing.
+        device (str): The device to use for inference (e.g., 'cpu', 'cuda').
+        pipeline_type (str): The type of pipeline (e.g., 'text', 'audio').
+        num_shards (int): The number of shards to split the dataset into. Defaults to 1.
+        shard_id (int): The ID of the shard to process. Defaults to 0.
+        cache_to_arrow (bool): Whether to cache results to Arrow format. Defaults to False.
+        output_dir (str): The directory to save the output to. Defaults to 'results'.
+        take (int): The number of batches to take for processing. Defaults to -1 (process all).
+        dataset_uuid (str): The id for the dataset instance, this is used for caching. Defaults to None.
+
+    """
+    columns: List[str]
+    batch_size: int = 5
+    output_dir: str = "results"
+    output_file_name: str = "results"
+    device: str = "cpu"
+    take: int = -1
+    cache_to_arrow: bool = False
+    dataset_uuid: str = None
+
+    def with_overwrites(self, overwrites: PipelineOverwrites):
+        return replace(self, **overwrites)
 
 
 class Pipeline(ABC):
@@ -43,14 +86,16 @@ class Pipeline(ABC):
         """
         try:
             logger.info("Starting to process dataset...")
+            os.makedirs(
+                f"{self.config.output_dir}_{self.config.dataset_uuid}", exist_ok=True)
 
             if self.config.take > 0:
                 dataset = dataset.select(
                     range(self.config.take * self.config.batch_size))
 
-            cache_file_name = f"cache_{self.__class__.__name__}_{self.config.dataset_name}_{self.config.dataset_split}.arrow"
+            cache_file_name = f"cache_{self.__class__.__name__}.arrow"
             cache_file_path = os.path.join(
-                self.config.output_dir, cache_file_name)
+                f"{self.config.output_dir}_{self.config.dataset_uuid}", cache_file_name)
 
             updated_dataset = dataset.map(
                 lambda batch: self.process_batch(batch),
