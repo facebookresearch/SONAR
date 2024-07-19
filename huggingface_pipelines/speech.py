@@ -113,7 +113,6 @@ class AudioToTextHFPipeline(Pipeline):
                 self.process_batch,
                 batched=True,
                 batch_size=self.config.batch_size,
-                remove_columns=dataset.column_names,
                 load_from_cache_file=False,
                 desc="Transcribing audio"
             )
