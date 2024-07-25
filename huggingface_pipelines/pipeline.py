@@ -4,7 +4,9 @@ import logging
 from dataclasses import dataclass, replace
 from datasets import Dataset
 import os
-
+import multiprocessing
+from contextlib import contextmanager
+import torch
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -33,7 +35,7 @@ class PipelineConfig(ABC):
         cache_to_arrow (bool): Whether to cache results to Arrow format. Defaults to False.
         output_dir (str): The directory to save the output to. Defaults to 'results'.
         take (int): The number of batches to take for processing. Defaults to -1 (process all).
-        dataset_uuid (str): The id for the Dataset instance, this is used for caching. Defaults to None.
+        dataset_uuid (str): The id for the dataset instance, this is used for caching. Defaults to None.
 
     """
     columns: List[str]
@@ -56,6 +58,19 @@ class Pipeline(ABC):
 
     def __init__(self, config: PipelineConfig):
         self.config = config
+        self.results = []
+
+    @contextmanager
+    def resource_manager(self):
+        try:
+            if torch.cuda.is_available() and self.config.device == 'cuda':
+                torch.cuda.empty_cache()
+
+            yield
+
+        finally:
+            if torch.cuda.is_available() and self.config.device == 'cuda':
+                torch.cuda.empty_cache()
 
     @abstractmethod
     def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
@@ -93,12 +108,17 @@ class Pipeline(ABC):
             cache_file_path = os.path.join(
                 f"{self.config.output_dir}_{self.config.dataset_uuid}", cache_file_name)
 
+            num_proc = multiprocessing.cpu_count() if self.config.device == 'cpu' else 1
+
             updated_dataset = dataset.map(
                 lambda batch: self.process_batch(batch),
                 batched=True,
                 batch_size=self.config.batch_size,
                 load_from_cache_file=self.config.cache_to_arrow,
-                cache_file_name=cache_file_path if self.config.cache_to_arrow else None
+                cache_file_name=cache_file_path if self.config.cache_to_arrow else None,
+                desc="Processing dataset",
+                num_proc=num_proc
+
 
             )
 
@@ -107,3 +127,4 @@ class Pipeline(ABC):
         except Exception as e:
             logger.error(f"Error processing dataset: {e}")
             raise
+
