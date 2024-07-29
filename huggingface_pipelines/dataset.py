@@ -32,6 +32,7 @@ class DatasetConfig():
     cache_dir: str = None
     trust_remote_code: bool = False
     uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
+    output_dir: str = "results"
 
     def load_dataset(self):
         """
@@ -63,3 +64,4 @@ class DatasetConfig():
 
     def with_overwrites(self, overwrites: DatasetOverwrites):
         return replace(self, **overwrites)
+
