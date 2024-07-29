@@ -1,16 +1,15 @@
 import logging
-from datasets import Dataset
-from typing import List, Dict, Any
+from typing import Dict, Any, Optional
 from dataclasses import dataclass, replace
-from .pipeline import Pipeline, PipelineOverwrites, PipelineConfig
-from sonar.inference_pipelines.speech import SpeechInferenceParams, SpeechToTextPipeline
+from .pipeline import Pipeline, PipelineConfig, PipelineOverwrites
 import torch
+from sonar.inference_pipelines.speech import SpeechToTextModelPipeline
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class AudioOverwrites(PipelineOverwrites, total=False):
+class SpeechToTextOverwrites(PipelineOverwrites, total=False):
     encoder_model: str
     decoder_model: str
     target_lang: str
@@ -20,103 +19,78 @@ class AudioOverwrites(PipelineOverwrites, total=False):
 
 
 @dataclass
-class AudioPipelineConfig(PipelineConfig):
+class SpeechToTextPipelineConfig(PipelineConfig):
     """
-    Configuration class for ASR pipelines.
+    Configuration class for speech-to-text pipelines.
     """
     encoder_model: str = "sonar_speech_encoder_eng"
     decoder_model: str = "text_sonar_basic_decoder"
-    target_lang: str = None
+    target_lang: Optional[str] = None
     pad_idx: int = 0
-    fbank_dtype: str = None
+    fbank_dtype: torch.dtype = torch.float32
     n_parallel: int = 4
 
-    def with_overwrites(self, overwrites: AudioOverwrites):
+    def with_overwrites(self, overwrites: SpeechToTextOverwrites):
         return replace(self, **overwrites)
 
 
 @dataclass
-class AudioToTextHFPipeline(Pipeline):
+class HFSpeechToTextPipeline(Pipeline):
     """
-    A pipeline for transcribing audio datasets from HuggingFace into text using SONAR.
+    A pipeline for transcribing preprocessed audio data into text using SONAR.
     """
-    config: AudioPipelineConfig
+    config: SpeechToTextPipelineConfig
 
     def __post_init__(self):
         """
-        Initializes the SONAR models.
+        Initializes the SONAR SpeechToTextModelPipeline.
         """
-        self.speech_to_text_pipeline = SpeechToTextPipeline.load_from_name(
-            encoder_name=self.config.encoder_model,
-            decoder_name=self.config.decoder_model
+        self.sonar_pipeline = SpeechToTextModelPipeline(
+            encoder=self.config.encoder_model,
+            decoder=self.config.decoder_model,
+            tokenizer=self.config.decoder_model,
+            device=self.config.device,
+            fbank_dtype=self.fbank_dtype
         )
-        logger.info("SONAR models initialized.")
+        logger.info("SONAR SpeechToTextModelPipeline initialized.")
 
-    def transcribe_audio(self, audio_data: List[Dict[str, Any]]) -> List[str]:
+    def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Transcribes a list of audio data to text using SONAR.
-        Args:
-            audio_data (List[Dict[str, Any]]): A list of audio data dictionaries.
-        Returns:
-            List[str]: A list of transcribed texts.
+        Processes a batch of data by transcribing preprocessed audio.
         """
-        try:
-            logger.info(f"Transcribing {len(audio_data)} audio samples...")
-            speech_ctx = SpeechInferenceParams(
+        for column in self.config.columns:
+            if column not in batch:
+                logger.warning(f"Column {column} not found in batch.")
+                continue
+
+            audio_features = batch[f"{column}_preprocessed"]
+
+            # Convert audio features to the format expected by SONAR pipeline
+            audio_input = [torch.tensor(features)
+                           for features in audio_features]
+
+            transcribed_texts = self.sonar_pipeline.predict(
+                input=audio_input,
                 target_lang=self.config.target_lang,
                 batch_size=self.config.batch_size,
-                pad_idx=self.config.pad_idx,
-                device=self.config.device,
-                fbank_dtype=self.config.fbank_dtype,
-                n_parallel=self.config.n_parallel
+                n_parallel=self.config.n_parallel,
+                pad_idx=self.config.pad_idx
             )
-            speech_to_text_dp = self.speech_to_text_pipeline.build_pipeline(
-                speech_ctx)
 
-            transcriptions = []
-            with torch.inference_mode():
-                for batch in speech_to_text_dp:
-                    transcriptions.extend(batch)
+            batch[f"{column}_transcribed"] = transcribed_texts
 
-            logger.info("Audio transcribed successfully.")
-            return transcriptions
-        except Exception as e:
-            logger.error(f"Error transcribing audio: {e}")
-            raise
+        return batch
 
-    def process_batch(self, batch: Dict[str, Any]) -> Dict[str, List[str]]:
+    def __call__(self, dataset):
         """
-        Processes a batch of data by transcribing audio.
-        Args:
-            batch (Dict[str, Any]): A batch of data containing audio.
-        Returns:
-            Dict[str, List[str]]: A dictionary with transcribed texts.
-        """
-        result = {}
-        for column in self.config.columns:
-            audio_data = batch[column]
-            transcribed_texts = self.transcribe_audio(audio_data)
-            result[column] = transcribed_texts
-        return result
-
-    def __call__(self, dataset: Dataset) -> Dataset:
-        """
-        Processes the dataset and updates it.
-        Args:
-            dataset (Dataset): The dataset to process.
-        Returns:
-            Dataset: The updated dataset.
+        Processes the dataset and updates it with transcriptions.
         """
         try:
-            logger.info("Starting to process dataset...")
-            updated_dataset = dataset.map(
-                self.process_batch,
-                batched=True,
-                batch_size=self.config.batch_size,
-                load_from_cache_file=False,
-                desc="Transcribing audio"
-            )
+            logger.info("Starting to transcribe dataset...")
+            updated_dataset = super().__call__(dataset)
+            logger.info("Transcription completed.")
             return updated_dataset
         except Exception as e:
             logger.error(f"Error processing dataset: {e}")
             raise
+
