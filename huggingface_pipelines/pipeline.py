@@ -4,15 +4,15 @@ import logging
 from dataclasses import dataclass, replace
 from datasets import Dataset
 import os
-import multiprocessing
 from contextlib import contextmanager
 import torch
+from .dataset import DatasetConfig
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class PipelineOverwrites(TypedDict, total=False):
+class PipelineOverwrites(TypedDict):
     batch_size: int
     device: str
     cache_to_arrow: bool
@@ -39,13 +39,11 @@ class PipelineConfig(ABC):
 
     """
     columns: List[str]
+    dataset_config: DatasetConfig
     batch_size: int = 5
-    output_dir: str = "results"
-    output_file_name: str = "results"
     device: str = "cpu"
     take: int = -1
     cache_to_arrow: bool = False
-    dataset_uuid: str = None
 
     def with_overwrites(self, overwrites: PipelineOverwrites):
         return replace(self, **overwrites)
@@ -98,7 +96,7 @@ class Pipeline(ABC):
         try:
             logger.info("Starting to process dataset...")
             os.makedirs(
-                f"{self.config.output_dir}_{self.config.dataset_uuid}", exist_ok=True)
+                f"{self.config.dataset_config.output_dir}_{self.config.dataset_config.dataset_name}_{self.config.dataset_config.uuid}", exist_ok=True)
 
             if self.config.take > 0:
                 dataset = dataset.select(
@@ -106,9 +104,9 @@ class Pipeline(ABC):
 
             cache_file_name = f"cache_{self.__class__.__name__}.arrow"
             cache_file_path = os.path.join(
-                f"{self.config.output_dir}_{self.config.dataset_uuid}", cache_file_name)
+                f"{self.config.dataset_config.output_dir}_{self.config.dataset_config.dataset_name}_{self.config.dataset_config.uuid}", cache_file_name)
 
-            num_proc = multiprocessing.cpu_count() if self.config.device == 'cpu' else 1
+            num_proc = 1
 
             updated_dataset = dataset.map(
                 lambda batch: self.process_batch(batch),
@@ -122,7 +120,6 @@ class Pipeline(ABC):
 
             )
 
-            updated_dataset
             return updated_dataset
         except Exception as e:
             logger.error(f"Error processing dataset: {e}")
