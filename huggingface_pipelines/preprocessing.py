@@ -51,7 +51,7 @@ class PreprocessingPipeline(Pipeline, ABC):
         """
         for column in self.config.columns:
             if column in batch:
-                batch[f"{column}_preprocessed"] = [
+                batch[f"{column}_{self.output_column_suffix}"] = [
                     self.preprocess_text(text) for text in batch[column]]
             else:
                 logger.warning(f"Column {column} not found in batch.")
