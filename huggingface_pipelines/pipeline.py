@@ -52,18 +52,18 @@ class PipelineConfig(ABC):
         batch_size (int): The batch size to be used for processing.
         device (str): The device to use for inference (e.g., 'cpu', 'cuda').
         take (int): The number of batches to take for processing (-1 for all).
-        cache_to_arrow (bool): Whether to cache results to Arrow format.
         encoder_model (str): The name of the encoder model to use.
         source_lang (str): The source language code (e.g., 'eng_Latn').
+        load_from_cache_file (bool) : Whether to load the dataset from cache file.
     """
 
     columns: List[str]
     dataset_config: DatasetConfig
     output_column_suffix: str
+    load_from_cache_file: bool = True
     batch_size: int = 5
     device: str = "cpu"
     take: int = -1
-    cache_to_arrow: bool = False
     encoder_model: str = "text_sonar_basic_encoder"
     source_lang: str = "eng_Latn"
 
@@ -212,10 +212,9 @@ class Pipeline(ABC):
             self.process_batch,
             batched=True,
             batch_size=self.config.batch_size,
-            load_from_cache_file=self.config.cache_to_arrow,
+            load_from_cache_file=self.config.load_from_cache_file,
             cache_file_name=cache_file_path,
             desc="Processing dataset",
-            num_proc=1
         )
 
         return updated_dataset
