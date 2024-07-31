@@ -1,16 +1,16 @@
 import logging
 from typing import List, Dict, Any
-from dataclasses import dataclass, replace
-from .pipeline import Pipeline, PipelineOverwrites, PipelineConfig
-from datasets import Dataset
-from evaluate import load
+from dataclasses import dataclass, field
+from datasets import load_metric
+from .pipeline import PipelineConfig, Pipeline, PipelineOverwrites
 
 logger = logging.getLogger(__name__)
 
 
 class MetricOverwrites(PipelineOverwrites, total=False):
-    metric_name: str
+    metrics: List[str]
     low_score_threshold: float
+    reconstructed_columns: List[str]
 
 
 @dataclass
@@ -19,92 +19,90 @@ class MetricPipelineConfig(PipelineConfig):
     Configuration class for metrics.
 
     Attributes:
-        metric_name (str): The name of the metric to be used for evaluation.
-        low_score_threshold (float): The threshold below which the score is considered low.
+        metrics (List[str]): List of metric names to be used for evaluation.
+        low_score_threshold (float): Threshold below which scores are considered low for all metrics.
+        columns (List[str]): List of original columns to compute metrics for.
+        reconstructed_columns (List[str]): List of reconstructed columns corresponding to original columns.
+        output_column_suffix (str): Suffix for the output column names.
     """
-    metric_name: str = "bleu"
+    metrics: List[str] = field(default_factory=list)
     low_score_threshold: float = 0.5
+    reconstructed_columns: List[str] = field(default_factory=list)
 
-    def with_overwrites(self, overwrites: MetricOverwrites):
-        return replace(self, **overwrites)
+    def with_overwrites(self, overwrites: MetricOverwrites) -> 'MetricPipelineConfig':
+        return MetricPipelineConfig(**{**self.__dict__, **overwrites})
 
 
-@dataclass
 class MetricAnalyzerPipeline(Pipeline):
     """
-    A pipeline to analyze metrics for different data types.
+    A pipeline to analyze multiple metrics for different data types and reconstructed columns.
     """
-    config: MetricPipelineConfig
 
-    def __post_init__(self):
-        logger.info(f"Loading metric: {self.config.metric_name}...")
-        self.metric = load(self.config.metric_name)
-        logger.info(f"Metric {self.config.metric_name} loaded successfully.")
+    def __init__(self, config: MetricPipelineConfig):
+        self.config = config
+        self.metrics = {}
+        for metric_name in self.config.metrics:
+            logger.info(f"Loading metric: {metric_name}...")
+            self.metrics[metric_name] = load_metric(metric_name)
+            logger.info(f"Metric {metric_name} loaded successfully.")
 
-    def compute_metric(self, original_data: List[Any], reconstructed_data: List[Any]) -> Dict[str, Any]:
+    def compute_metric(self, metric_name: str, references: List[List[str]], predictions: List[str]) -> Dict[str, Any]:
         """
-        Computes the metric score between original and reconstructed data.
+        Computes the metric score between references and predictions.
 
         Args:
-            original_data (List[Any]): A list of original data.
-            reconstructed_data (List[Any]): A list of reconstructed data.
+            metric_name (str): Name of the metric to compute.
+            references (List[List[str]]): A list of reference texts, each wrapped in a list.
+            predictions (List[str]): A list of predicted texts.
 
         Returns:
             Dict[str, Any]: A dictionary containing the metric score.
         """
-        logger.info(f"Computing {self.config.metric_name} score...")
-        references = [[text] for text in original_data]
-        predictions = reconstructed_data
+        logger.info(f"Computing {metric_name} score...")
 
-        # Compute the metric
-        metric_score = self.metric.compute(
+        metric_score = self.metrics[metric_name].compute(
             predictions=predictions, references=references)
-        logger.info(
-            f"{self.config.metric_name} score computed: {metric_score}")
+        logger.info(f"{metric_name} score computed: {metric_score}")
         return metric_score
 
     def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Processes a single batch of data by computing the metric and updating the current batch.
+        Processes a single batch of data by computing metrics and updating the current batch.
 
         Args:
             batch (Dict[str, Any]): A batch of data.
 
         Returns:
-            batch: The updated batch with the 'metric_score' column.
-
+            Dict[str, Any]: The updated batch with the metric scores, predictions, and references.
         """
-
-        for column in self.config.columns:
+        for column, reconstructed_column in zip(self.config.columns, self.config.reconstructed_columns):
             original_data = batch[column]
-            reconstructed_data = batch[column + '_reconstructed']
-            metric_score = self.compute_metric(
-                original_data, reconstructed_data)
-            batch[column + '_metric_score'] = [metric_score] * \
-                len(original_data)
+            reconstructed_data = batch[reconstructed_column]
+
+            # Join back into strings
+
+            original_data = [' '.join(item) for item in original_data]
+            reconstructed_data = [' '.join(item)
+                                  for item in reconstructed_data]
+
+            references = [[ref.split()] for ref in original_data]
+            predictions = [pred.split() for pred in reconstructed_data]
+
+            batch[f"{column}_references"] = references
+            batch[f"{column}_predictions"] = predictions
+
+            for metric_name in self.config.metrics:
+                metric_score = self.compute_metric(
+                    metric_name, batch[f"{column}_references"], batch[f"{column}_predictions"])
+
+                output_column = f"{column}_{metric_name}_{self.config.output_column_suffix}"
+                score_value = metric_score[list(metric_score.keys())[0]]
+                batch[output_column] = [score_value] * len(original_data)
+
+                # Add a flag for low scores
+                low_score_flag = f"{output_column}_low"
+                batch[low_score_flag] = [
+                    score < self.config.low_score_threshold for score in batch[output_column]]
+
         return batch
 
-    def __call__(self, dataset: Dataset) -> Dataset:
-        """
-        Processes the dataset and updates it.
-
-        Args:
-            dataset (Dataset): The dataset to process.
-
-        Returns:
-            Dataset: The updated dataset.
-        """
-        try:
-            logger.info("Starting to process dataset...")
-
-            updated_dataset = dataset.map(
-                lambda batch: self.process_batch(batch),
-                batched=True,
-                batch_size=self.config.batch_size,
-                load_from_cache_file=False
-            )
-
-            return updated_dataset
-        except Exception as e:
-            logger.error(f"Error processing dataset: {e}")
-            raise
