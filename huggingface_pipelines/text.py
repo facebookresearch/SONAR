@@ -79,7 +79,6 @@ class EmbeddingToTextPipelineConfig(PipelineConfig):
         return replace(self, **overwrites)
 
 
-@dataclass
 class HFEmbeddingToTextPipeline(Pipeline):
     """
     Pipeline for converting embeddings back to text using a Hugging Face model.
@@ -88,9 +87,8 @@ class HFEmbeddingToTextPipeline(Pipeline):
         config (EmbeddingToTextPipelineConfig): Configuration for the pipeline.
         t2t_model (EmbeddingToTextModelPipeline): The model used for decoding embeddings to text.
     """
-    config: EmbeddingToTextPipelineConfig
 
-    def __post_init__(self):
+    def __init__(self, config: EmbeddingToTextPipelineConfig):
         """
         Initialize the embedding-to-text model after the instance is created.
         """
@@ -100,6 +98,8 @@ class HFEmbeddingToTextPipeline(Pipeline):
             tokenizer=self.config.decoder_model,
             device=self.config.device
         )
+
+        self.config = config
         logger.info("Model initialized.")
 
     def process_batch(self, batch: Dict[str, Any]) -> Dict[str, List[str]]:
@@ -177,7 +177,6 @@ class HFEmbeddingToTextPipeline(Pipeline):
             raise
 
 
-@dataclass
 class HFTextToEmbeddingPipeline(Pipeline):
     """
     Pipeline for converting text to embeddings using a Hugging Face model.
@@ -186,9 +185,8 @@ class HFTextToEmbeddingPipeline(Pipeline):
         config (TextToEmbeddingPipelineConfig): Configuration for the pipeline.
         t2vec_model (TextToEmbeddingModelPipeline): The model used for encoding text to embeddings.
     """
-    config: TextToEmbeddingPipelineConfig
 
-    def __post_init__(self):
+    def __init__(self, config: TextToEmbeddingPipelineConfig):
         """
         Initialize the text-to-embedding model after the instance is created.
         """
@@ -198,6 +196,8 @@ class HFTextToEmbeddingPipeline(Pipeline):
             tokenizer=self.config.encoder_model,
             device=self.config.device
         )
+
+        self.config = config
 
     def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
         """
