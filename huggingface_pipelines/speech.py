@@ -1,96 +1,169 @@
-import logging
-from typing import Dict, Any, Optional
-from dataclasses import dataclass, replace
-from .pipeline import Pipeline, PipelineConfig, PipelineOverwrites
+import os
 import torch
-from sonar.inference_pipelines.speech import SpeechToTextModelPipeline
+from typing import Dict, Any
+from dataclasses import dataclass, replace
+from sonar.inference_pipelines.speech import SpeechToEmbeddingModelPipeline
+import tempfile
+import soundfile as sf
+import logging
+from .pipeline import Pipeline, PipelineConfig, PipelineOverwrites
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class SpeechToTextOverwrites(PipelineOverwrites, total=False):
+class HFSpeechToEmbeddingOverwrites(PipelineOverwrites, total=False):
+    """
+    Overwrite options for HFSpeechToEmbeddingPipeline configuration.
+
+    Attributes:
+        encoder_model (str): The name or path of the encoder model to use.
+        fbank_dtype (torch.dtype): The dtype for the fbank features.
+        n_parallel (int): Number of parallel processes for audio processing.
+        pad_idx (int): The index used for padding.
+        audio_column (str): The name of the column containing audio data.
+    """
     encoder_model: str
-    decoder_model: str
-    target_lang: str
-    pad_idx: int
-    fbank_dtype: str
+    fbank_dtype: torch.dtype
     n_parallel: int
+    pad_idx: int
+    audio_column: str
 
 
 @dataclass
-class SpeechToTextPipelineConfig(PipelineConfig):
+class HFSpeechToEmbeddingPipelineConfig(PipelineConfig):
     """
-    Configuration class for speech-to-text pipelines.
+    Configuration class for HFSpeechToEmbeddingPipeline.
+
+    Attributes:
+        encoder_model (str): The name or path of the encoder model to use.
+        fbank_dtype (torch.dtype): The dtype for the fbank features. Defaults to torch.float32.
+        n_parallel (int): Number of parallel processes for audio processing. Defaults to 4.
+        pad_idx (int): The index used for padding. Defaults to 0.
+        audio_column (str): The name of the column containing audio data. Defaults to "audio".
     """
-    encoder_model: str = "sonar_speech_encoder_eng"
-    decoder_model: str = "text_sonar_basic_decoder"
-    target_lang: Optional[str] = None
-    pad_idx: int = 0
+    encoder_model: str
     fbank_dtype: torch.dtype = torch.float32
     n_parallel: int = 4
+    pad_idx: int = 0
+    audio_column: str = "audio"
 
-    def with_overwrites(self, overwrites: SpeechToTextOverwrites):
+    def with_overwrites(self, overwrites: HFSpeechToEmbeddingOverwrites) -> 'HFSpeechToEmbeddingPipelineConfig':
+        """
+        Create a new configuration with the specified overwrites.
+
+        Args:
+            overwrites (HFSpeechToEmbeddingOverwrites): Overwrite values for the configuration.
+
+        Returns:
+            HFSpeechToEmbeddingPipelineConfig: A new configuration instance with applied overwrites.
+        """
         return replace(self, **overwrites)
 
 
-@dataclass
-class HFSpeechToTextPipeline(Pipeline):
+class HFSpeechToEmbeddingPipeline(Pipeline):
     """
-    A pipeline for transcribing preprocessed audio data into text using SONAR.
-    """
-    config: SpeechToTextPipelineConfig
+    A pipeline for converting speech audio to embeddings using a HuggingFace model.
 
-    def __post_init__(self):
+    This pipeline processes batches of audio data, converting them to embeddings
+    using a specified encoder model. It handles temporary file creation for audio
+    processing and ensures consistent embedding shapes across the batch.
+
+    Attributes:
+        config (HFSpeechToEmbeddingPipelineConfig): The configuration for this pipeline.
+        model (SpeechToEmbeddingModelPipeline): The underlying model used for embedding generation.
+    """
+
+    def __init__(self, config: HFSpeechToEmbeddingPipelineConfig):
         """
-        Initializes the SONAR SpeechToTextModelPipeline.
+        Initialize the HFSpeechToEmbeddingPipeline.
+
+        Args:
+            config (HFSpeechToEmbeddingPipelineConfig): The configuration for this pipeline.
         """
-        self.sonar_pipeline = SpeechToTextModelPipeline(
+        self.config = config
+        self.model = SpeechToEmbeddingModelPipeline(
             encoder=self.config.encoder_model,
-            decoder=self.config.decoder_model,
-            tokenizer=self.config.decoder_model,
-            device=self.config.device,
-            fbank_dtype=self.fbank_dtype
+            device=torch.device(self.config.device),
+            fbank_dtype=self.config.fbank_dtype
         )
-        logger.info("SONAR SpeechToTextModelPipeline initialized.")
 
     def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Processes a batch of data by transcribing preprocessed audio.
-        """
-        for column in self.config.columns:
-            if column not in batch:
-                logger.warning(f"Column {column} not found in batch.")
-                continue
+        Process a batch of audio data, converting it to embeddings.
 
-            audio_features = batch[f"{column}_preprocessed"]
+        This method handles the conversion of audio data to temporary WAV files,
+        generates embeddings using the model, and ensures consistent embedding
+        shapes across the batch.
 
-            # Convert audio features to the format expected by SONAR pipeline
-            audio_input = [torch.tensor(features)
-                           for features in audio_features]
+        Args:
+            batch (Dict[str, Any]): A dictionary containing the batch data.
+                Expected to have an 'audio' key with a list of audio data dictionaries.
 
-            transcribed_texts = self.sonar_pipeline.predict(
-                input=audio_input,
-                target_lang=self.config.target_lang,
-                batch_size=self.config.batch_size,
-                n_parallel=self.config.n_parallel,
-                pad_idx=self.config.pad_idx
-            )
+        Returns:
+            Dict[str, Any]: The input batch dictionary with an additional key
+                '{audio_column}_embedding' containing the generated embeddings.
 
-            batch[f"{column}_transcribed"] = transcribed_texts
-
-        return batch
-
-    def __call__(self, dataset):
-        """
-        Processes the dataset and updates it with transcriptions.
+        Raises:
+            Exception: If there's an error during batch processing or embedding generation.
         """
         try:
-            logger.info("Starting to transcribe dataset...")
-            updated_dataset = super().__call__(dataset)
-            logger.info("Transcription completed.")
-            return updated_dataset
+            audio_inputs = []
+            temp_files = []
+
+            for audio_data in batch[self.config.audio_column]:
+                if isinstance(audio_data, dict) and 'array' in audio_data and 'sampling_rate' in audio_data:
+                    temp_file = tempfile.NamedTemporaryFile(
+                        delete=False, suffix='.wav')
+                    temp_files.append(temp_file)
+                    sf.write(temp_file.name,
+                             audio_data['array'], audio_data['sampling_rate'])
+                    audio_inputs.append(temp_file.name)
+                else:
+                    logger.warning(f"Invalid audio data format: {audio_data}")
+
+            if not audio_inputs:
+                logger.warning("No valid audio inputs found in batch.")
+                return batch
+
+            try:
+                all_embeddings = self.model.predict(
+                    input=audio_inputs,
+                    batch_size=self.config.batch_size,
+                    n_parallel=self.config.n_parallel,
+                    pad_idx=self.config.pad_idx
+                )
+
+                # Ensure all embeddings are 2D
+                all_embeddings = [emb.unsqueeze(0) if emb.dim(
+                ) == 1 else emb for emb in all_embeddings]
+
+                # Get the maximum sequence length and embedding dimension
+                max_seq_len = max(emb.shape[0] for emb in all_embeddings)
+
+                # Pad embeddings to have the same sequence length
+                padded_embeddings = [torch.nn.functional.pad(
+                    emb, (0, 0, 0, max_seq_len - emb.shape[0])) for emb in all_embeddings]
+
+                # Stack embeddings into a single tensor
+                stacked_embeddings = torch.stack(padded_embeddings)
+
+                batch[f"{self.config.audio_column}_embedding"] = stacked_embeddings.cpu(
+                ).numpy()
+
+            except Exception as e:
+                logger.error(f"Error in model.predict: {str(e)}")
+                raise
+
         except Exception as e:
-            logger.error(f"Error processing dataset: {e}")
+            logger.error(f"Error processing batch: {str(e)}")
+            logger.error(f"Batch content: {batch}")
             raise
+
+        finally:
+            for temp_file in temp_files:
+                temp_file.close()
+                os.unlink(temp_file.name)
+
+        return batch
 
