@@ -25,7 +25,11 @@ SPACY_MODELS = {
 class PreprocessingPipelineConfig(PipelineConfig):
     """
     Configuration class for preprocessing pipelines.
-    Add any specific preprocessing configuration parameters here.
+
+    This class extends the base PipelineConfig and can be used to add
+    specific configuration parameters for preprocessing tasks. Currently,
+    it doesn't add any additional fields, but it serves as a placeholder
+    for future extensions.
     """
     pass
 
@@ -33,31 +37,58 @@ class PreprocessingPipelineConfig(PipelineConfig):
 class PreprocessingPipeline(Pipeline, ABC):
     """
     Abstract base class for preprocessing pipelines.
+
+    This class defines the structure for all preprocessing pipelines,
+    ensuring they implement the necessary methods for text preprocessing
+    and batch processing.
+
+    Attributes:
+        config (PreprocessingPipelineConfig): Configuration for the preprocessing pipeline.
     """
 
     def __init__(self, config: PreprocessingPipelineConfig):
+        """
+        Initialize the PreprocessingPipeline with the given configuration.
+
+        Args:
+            config (PreprocessingPipelineConfig): Configuration for the preprocessing pipeline.
+        """
         super().__init__(config)
 
     @abstractmethod
     def preprocess_text(self, text: str) -> List[str]:
         """
         Abstract method to preprocess a single text.
+
+        This method should be implemented by subclasses to define
+        specific text preprocessing logic.
+
+        Args:
+            text (str): The input text to preprocess.
+
+        Returns:
+            List[str]: A list of preprocessed text segments.
         """
         pass
 
     def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
         """
         Processes a batch of data by applying preprocessing to specified columns.
+
+        This method iterates over the specified columns in the configuration,
+        applies the preprocessing to each text in those columns, and adds
+        the results to new columns with a '_preprocessed' suffix.
+
+        Args:
+            batch (Dict[str, Any]): A dictionary containing the batch data.
+
+        Returns:
+            Dict[str, Any]: The input batch with additional preprocessed columns.
         """
         for column in self.config.columns:
             if column in batch:
                 batch[f"{column}_preprocessed"] = [
                     self.preprocess_text(text) for text in batch[column]]
-
-                logger.info(
-                    f"Preprocessed {column} column:  {batch[column][:5]}")
-            else:
-                logger.warning(f"Column {column} not found in batch.")
         return batch
 
 
@@ -65,28 +96,60 @@ class PreprocessingPipeline(Pipeline, ABC):
 class TextPreprocessingPipelineConfig(PreprocessingPipelineConfig):
     """
     Configuration class for text preprocessing pipelines.
+
+    This class extends PreprocessingPipelineConfig with additional
+    parameters specific to text preprocessing tasks.
+
+    Attributes:
+        handle_missing (str): Strategy for handling missing values. 
+                              Options: 'skip', 'remove', or 'fill'.
+        fill_value (Optional[str]): Value to use when filling missing data.
+        source_lang (str): Source language code for the text data.
     """
-    handle_missing: str = 'skip'  # Options: 'skip', 'remove', or 'fill'
-    fill_value: Optional[str] = None  # Used when handle_missing is 'fill'
+    handle_missing: str = 'skip'
+    fill_value: Optional[str] = None
     source_lang: str = "eng_Latn"
 
 
-@dataclass
 class TextPreprocessingPipeline(PreprocessingPipeline):
     """
     A pipeline for preprocessing text data, including handling of null and missing values,
     and performing sentence segmentation.
+
+    This pipeline uses spaCy for text processing and can handle various
+    languages based on the provided configuration.
+
+    Attributes:
+        config (TextPreprocessingPipelineConfig): Configuration for the text preprocessing pipeline.
+        nlp: Loaded spaCy language model for text processing.
     """
 
-    config: TextPreprocessingPipelineConfig
+    def __init__(self, config: TextPreprocessingPipelineConfig):
+        """
+        Initialize the TextPreprocessingPipeline with the given configuration.
 
-    def __post_init__(self):
+        Args:
+            config (TextPreprocessingPipelineConfig): Configuration for the text preprocessing pipeline.
+        """
+        self.config = config
         self.nlp = self.load_spacy_model(self.config.source_lang)
-        logger.info("Model initialized.")
+        logger.info("Text preprocessing model initialized.")
 
     def load_spacy_model(self, lang_code: str):
         """
         Loads the appropriate spaCy model based on the language code.
+
+        This method attempts to load the specified spaCy model. If the model
+        is not found, it attempts to download and load it.
+
+        Args:
+            lang_code (str): The language code for the desired spaCy model.
+
+        Returns:
+            The loaded spaCy language model.
+
+        Raises:
+            ValueError: If the language code is not supported.
         """
         if lang_code not in SPACY_MODELS:
             raise ValueError(
@@ -104,7 +167,18 @@ class TextPreprocessingPipeline(PreprocessingPipeline):
     def preprocess_text(self, text: Optional[str]) -> List[str]:
         """
         Preprocesses a single text by segmenting it into sentences.
-        Handles null or missing values according to the configuration.
+
+        This method handles null or missing values according to the configuration
+        and performs sentence segmentation on valid text input.
+
+        Args:
+            text (Optional[str]): The input text to preprocess.
+
+        Returns:
+            List[str]: A list of preprocessed sentences.
+
+        Raises:
+            ValueError: If an invalid handle_missing option is specified in the configuration.
         """
         if text is None or (isinstance(text, str) and text.strip() == ''):
             if self.config.handle_missing == 'skip':
@@ -121,28 +195,44 @@ class TextPreprocessingPipeline(PreprocessingPipeline):
         return [sent.text.strip() for sent in doc.sents]
 
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-
 @dataclass
 class AudioPreprocessingPipelineConfig(PipelineConfig):
     """
     Configuration class for audio preprocessing pipelines.
+
+    This class extends PipelineConfig with additional parameters
+    specific to audio preprocessing tasks.
+
+    Attributes:
+        whisper_model (str): The name or path of the Whisper model to use.
+        max_duration (Optional[float]): Maximum duration of audio in seconds.
+                                        None for no limit.
     """
     whisper_model: str = "openai/whisper-base"
-    # Maximum duration in seconds, None for no limit
     max_duration: Optional[float] = None
 
 
-@dataclass
 class AudioPreprocessingPipeline(Pipeline):
     """
     A pipeline for preprocessing audio data using Whisper's feature extractor.
-    """
-    config: AudioPreprocessingPipelineConfig
 
-    def __post_init__(self):
+    This pipeline uses the Whisper model to extract features from audio data,
+    preparing it for further processing or model input.
+
+    Attributes:
+        config (AudioPreprocessingPipelineConfig): Configuration for the audio preprocessing pipeline.
+        whisper_processor (WhisperProcessor): Whisper processor for audio processing.
+        feature_extractor (WhisperFeatureExtractor): Whisper feature extractor for audio feature extraction.
+    """
+
+    def __init__(self, config: AudioPreprocessingPipelineConfig):
+        """
+        Initialize the AudioPreprocessingPipeline with the given configuration.
+
+        Args:
+            config (AudioPreprocessingPipelineConfig): Configuration for the audio preprocessing pipeline.
+        """
+        self.config = config
         self.whisper_processor = WhisperProcessor.from_pretrained(
             self.config.whisper_model)
         self.feature_extractor = WhisperFeatureExtractor.from_pretrained(
@@ -152,28 +242,47 @@ class AudioPreprocessingPipeline(Pipeline):
     def preprocess_audio(self, audio: np.ndarray, sample_rate: int) -> np.ndarray:
         """
         Preprocesses a single audio array using Whisper's feature extractor.
+
+        This method converts the audio to float32, limits its duration if specified,
+        and extracts features using the Whisper feature extractor.
+
+        Args:
+            audio (np.ndarray): The input audio array.
+            sample_rate (int): The sample rate of the input audio.
+
+        Returns:
+            np.ndarray: The preprocessed audio features.
         """
-        # Convert to float32 if not already
         if audio.dtype != np.float32:
             audio = audio.astype(np.float32)
 
-        # Limit duration if specified
         if self.config.max_duration is not None:
             max_samples = int(self.config.max_duration * sample_rate)
             audio = audio[:max_samples]
 
-        # Extract features using Whisper's feature extractor
         inputs = self.feature_extractor(
             audio,
             sampling_rate=sample_rate,
             return_tensors="np"
         )
-
         return inputs.input_features.squeeze()
 
     def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
         """
         Processes a batch of audio data.
+
+        This method iterates over the specified columns in the configuration,
+        applies the audio preprocessing to each audio sample in those columns,
+        and adds the results to new columns with a '_preprocessed' suffix.
+
+        Args:
+            batch (Dict[str, Any]): A dictionary containing the batch data.
+
+        Returns:
+            Dict[str, Any]: The input batch with additional preprocessed columns.
+
+        Raises:
+            ValueError: If an unsupported audio data format is encountered.
         """
         for column in self.config.columns:
             if column not in batch:
