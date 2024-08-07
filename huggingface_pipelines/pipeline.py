@@ -57,13 +57,8 @@ class PipelineConfig(ABC):
             memory usage and processing speed. Adjust based on available resources.
         device (str): The device to use for computation (e.g., 'cpu', 'cuda').
             This is relevant as all torch models for the instantiated pipelines will use this device.
-
         take (int): The number of batches to process (-1 for all). Useful for
             debugging or processing subsets of large datasets.
-        encoder_model (str): The name or path of the encoder model to use.
-            This is a placeholder and its usage depends on the specific pipeline implementation.
-        source_lang (str): The source language code (e.g., 'eng_Latn').
-            This is used for language-specific processing tasks.
     """
     columns: List[str]
     output_path: str
@@ -230,4 +225,3 @@ class Pipeline(ABC):
         )
 
         return updated_dataset
-
