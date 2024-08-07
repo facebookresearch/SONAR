@@ -18,6 +18,8 @@ class TextToEmbeddingOverwrites(PipelineOverwrites, total=False):
 
         Attributes:
             max_seq_len (int): Number of a tokens per sequence. Defaults to None which means maximum for model.
+            encoder_model (str): The name or path of the model to be used for encoding texts into embeddings.
+            source_lang (str): The source language code for the texts to be encoded.
     """
 
     max_seq_len: int
