@@ -6,7 +6,6 @@ from datasets import Dataset, IterableDataset
 import os
 from contextlib import contextmanager
 import torch
-from .dataset import DatasetConfig
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -17,59 +16,69 @@ class PipelineOverwrites(TypedDict):
     """
     A TypedDict representing the possible overwrites for a PipelineConfig.
 
-    Attributes:
-        batch_size (int): The new batch size to use for processing.
-        device (str): The new device to use for processing (e.g., 'cpu', 'cuda').
-        cache_to_arrow (bool): Whether to cache results to Arrow format.
-        take (int): The new number of batches to process (-1 for all).
-        output_dir (str): The new output directory for results.
-        output_file_name (str): The new output file name for results.
-        columns (List[str]): The new list of columns to process.
-    """
+    This allows for dynamic modification of pipeline configuration parameters.
 
+    Attributes:
+        batch_size (int): The batch size for processing data.
+        device (str): The device to use for computation (e.g., 'cpu', 'cuda').
+        cache_to_arrow (bool): Whether to cache results in Arrow format.
+        take (int): The number of batches to process (-1 for all).
+        output_path (str): The directory path for output files.
+        output_file_name (str): The name of the output file.
+        columns (List[str]): The columns to be processed in the dataset.
+    """
     batch_size: int
     device: str
     cache_to_arrow: bool
     take: int
-    output_dir: str
+    output_path: str
     output_file_name: str
     columns: List[str]
 
 
 @dataclass
 class PipelineConfig(ABC):
+
     """
     Abstract base class for pipeline configurations.
 
     This class defines the common configuration parameters for all pipelines.
-    Specific pipeline implementations should inherit from this class and add
-    any additional configuration parameters they need.
+    It is designed to be flexible and can be used with various types of models,
+    including but not limited to PyTorch models.
 
     Attributes:
-        columns (List[str]): The columns to be transformed by the pipeline.
-        dataset_config (DatasetConfig): The configuration related to loading datasets.
+        columns (List[str]): The columns to be processed by the pipeline.
+        output_path (str): The directory path for output files.
         output_column_suffix (str): The suffix to append to output column names.
-        batch_size (int): The batch size to be used for processing.
-        device (str): The device to use for inference (e.g., 'cpu', 'cuda').
-        take (int): The number of batches to take for processing (-1 for all).
-        encoder_model (str): The name of the encoder model to use.
-        source_lang (str): The source language code (e.g., 'eng_Latn').
-        load_from_cache_file (bool) : Whether to load the dataset from cache file.
-    """
+            This is used to distinguish processed columns from original ones.
+        load_from_cache_file (bool): Whether to load the dataset from cache file.
+            This can significantly speed up repeated processing of the same dataset.
+        batch_size (int): The batch size for processing data. This affects both
+            memory usage and processing speed. Adjust based on available resources.
+        device (str): The device to use for computation (e.g., 'cpu', 'cuda').
+            This is relevant as all torch models for the instantiated pipelines will use this device.
 
+        take (int): The number of batches to process (-1 for all). Useful for
+            debugging or processing subsets of large datasets.
+        encoder_model (str): The name or path of the encoder model to use.
+            This is a placeholder and its usage depends on the specific pipeline implementation.
+        source_lang (str): The source language code (e.g., 'eng_Latn').
+            This is used for language-specific processing tasks.
+    """
     columns: List[str]
-    dataset_config: DatasetConfig
+    output_path: str
     output_column_suffix: str
     load_from_cache_file: bool = True
     batch_size: int = 5
     device: str = "cpu"
     take: int = -1
-    encoder_model: str = "text_sonar_basic_encoder"
-    source_lang: str = "eng_Latn"
 
     def with_overwrites(self, overwrites: PipelineOverwrites) -> 'PipelineConfig':
         """
         Create a new PipelineConfig with the specified overwrites.
+
+        This method allows for the creation of a new configuration object
+        with selective parameter updates without modifying the original.
 
         Args:
             overwrites (PipelineOverwrites): A dictionary of configuration overwrites.
@@ -125,7 +134,8 @@ class Pipeline(ABC):
         """
         Processes a single batch of data and returns the updated batch.
 
-        This method should be implemented by all concrete pipeline classes.
+        This method should be implemented by all concrete pipeline classes to define
+        the specific data processing logic for each pipeline.
 
         Args:
             batch (Dict[str, Any]): A batch of data to process.
@@ -140,7 +150,8 @@ class Pipeline(ABC):
         Processes the entire dataset using the pipeline.
 
         This method applies the `process_batch` method to the entire dataset,
-        handling batching, caching, and error management.
+        handling batching, caching, and error management. It supports both
+        regular and streaming datasets.
 
         Args:
             dataset (Dataset): The dataset to process.
@@ -153,10 +164,7 @@ class Pipeline(ABC):
         """
         try:
             logger.info("Starting to process dataset...")
-            os.makedirs(
-                f"{self.config.dataset_config.output_dir}_{self.config.dataset_config.dataset_name}_{self.config.dataset_config.uuid}",
-                exist_ok=True
-            )
+            os.makedirs(self.config.output_path, exist_ok=True)
 
             if isinstance(dataset, IterableDataset):
                 return self.process_streaming_dataset(dataset)
@@ -170,27 +178,33 @@ class Pipeline(ABC):
         """
         Process a streaming dataset.
 
+        This method applies the pipeline's processing logic to a streaming dataset,
+        which is useful for large datasets that don't fit in memory.
+
         Args:
             dataset (IterableDataset): The streaming dataset to process.
 
         Returns:
             IterableDataset: The processed streaming dataset.
         """
+
+        if self.config.take > 0:
+            updated_dataset = dataset.take(
+                self.config.take * self.config.batch_size)
+
         updated_dataset = dataset.map(
             self.process_batch,
             batched=True,
             batch_size=self.config.batch_size,
         )
-
-        if self.config.take > 0:
-            updated_dataset = updated_dataset.take(
-                self.config.take * self.config.batch_size)
-
         return updated_dataset
 
     def process_regular_dataset(self, dataset: Dataset) -> Dataset:
         """
         Process a regular (non-streaming) dataset.
+
+        This method applies the pipeline's processing logic to a regular dataset,
+        with support for caching and selective processing.
 
         Args:
             dataset (Dataset): The regular dataset to process.
@@ -204,9 +218,7 @@ class Pipeline(ABC):
 
         cache_file_name = f"cache_{self.__class__.__name__}.arrow"
         cache_file_path = os.path.join(
-            f"{self.config.dataset_config.output_dir}_{self.config.dataset_config.dataset_name}_{self.config.dataset_config.uuid}",
-            cache_file_name
-        )
+            self.config.output_path, cache_file_name)
 
         updated_dataset = dataset.map(
             self.process_batch,
