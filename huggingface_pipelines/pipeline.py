@@ -27,6 +27,7 @@ class PipelineOverwrites(TypedDict):
         output_path (str): The directory path for output files.
         output_file_name (str): The name of the output file.
         columns (List[str]): The columns to be processed in the dataset.
+        gc_collect_frequency (int): Frequency of garbage collection in terms of batches processed.
     """
     batch_size: int
     device: str
@@ -35,11 +36,11 @@ class PipelineOverwrites(TypedDict):
     output_path: str
     output_file_name: str
     columns: List[str]
+    gc_collect_frequency: int
 
 
 @dataclass
 class PipelineConfig(ABC):
-
     """
     Abstract base class for pipeline configurations.
 
@@ -58,13 +59,10 @@ class PipelineConfig(ABC):
             memory usage and processing speed. Adjust based on available resources.
         device (str): The device to use for computation (e.g., 'cpu', 'cuda').
             This is relevant as all torch models for the instantiated pipelines will use this device.
-
         take (int): The number of batches to process (-1 for all). Useful for
             debugging or processing subsets of large datasets.
-        encoder_model (str): The name or path of the encoder model to use.
-            This is a placeholder and its usage depends on the specific pipeline implementation.
-        source_lang (str): The source language code (e.g., 'eng_Latn').
-            This is used for language-specific processing tasks.
+        gc_collect_frequency (int): Frequency of garbage collection in terms of batches processed.
+            Set to 0 to disable explicit garbage collection.
     """
     columns: List[str]
     output_path: str
@@ -73,6 +71,7 @@ class PipelineConfig(ABC):
     batch_size: int = 5
     device: str = "cpu"
     take: int = -1
+    gc_collect_frequency: int = 1000
 
     def with_overwrites(self, overwrites: PipelineOverwrites) -> 'PipelineConfig':
         """
@@ -100,6 +99,7 @@ class Pipeline(ABC):
 
     Attributes:
         config (PipelineConfig): The configuration for this pipeline.
+        batch_count (int): Counter for the number of batches processed.
     """
 
     def __init__(self, config: PipelineConfig):
@@ -110,6 +110,7 @@ class Pipeline(ABC):
             config (PipelineConfig): The configuration for this pipeline.
         """
         self.config = config
+        self.batch_count = 0
 
     @contextmanager
     def resource_manager(self):
@@ -117,21 +118,22 @@ class Pipeline(ABC):
         Context manager to efficiently initialize and free pipeline resources.
 
         This method ensures that CUDA memory is properly managed when using GPU.
-        It clears the CUDA cache before and after pipeline execution. It also garbage collects
-        before clearing the cache to remove all freed memory addresses from memory.
+        It clears the CUDA cache and optionally performs garbage collection
+        based on the configured frequency.
 
         Yields:
             None
         """
-        try:
-            if torch.cuda.is_available() and self.config.device == 'cuda':
+
+        if torch.cuda.is_available() and self.config.device == 'cuda':
+            if self.config.gc_collect_frequency > 0 and self.batch_count % self.config.gc_collect_frequency == 0:
                 gc.collect()
                 torch.cuda.empty_cache()
+
+        try:
             yield
         finally:
-            if torch.cuda.is_available() and self.config.device == 'cuda':
-                gc.collect()
-                torch.cuda.empty_cache()
+            self.batch_count += 1
 
     @abstractmethod
     def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
@@ -191,13 +193,15 @@ class Pipeline(ABC):
         Returns:
             IterableDataset: The processed streaming dataset.
         """
-
         if self.config.take > 0:
-            updated_dataset = dataset.take(
-                self.config.take * self.config.batch_size)
+            dataset = dataset.take(self.config.take * self.config.batch_size)
+
+        def process_and_manage_resources(batch):
+            with self.resource_manager():
+                return self.process_batch(batch)
 
         updated_dataset = dataset.map(
-            self.process_batch,
+            process_and_manage_resources,
             batched=True,
             batch_size=self.config.batch_size,
         )
@@ -224,8 +228,12 @@ class Pipeline(ABC):
         cache_file_path = os.path.join(
             self.config.output_path, cache_file_name)
 
+        def process_and_manage_resources(batch):
+            with self.resource_manager():
+                return self.process_batch(batch)
+
         updated_dataset = dataset.map(
-            self.process_batch,
+            process_and_manage_resources,
             batched=True,
             batch_size=self.config.batch_size,
             load_from_cache_file=self.config.load_from_cache_file,
