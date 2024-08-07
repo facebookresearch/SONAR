@@ -117,7 +117,8 @@ class Pipeline(ABC):
         Context manager to efficiently initialize and free pipeline resources.
 
         This method ensures that CUDA memory is properly managed when using GPU.
-        It clears the CUDA cache before and after pipeline execution.
+        It clears the CUDA cache before and after pipeline execution. It also garbage collects
+        before clearing the cache to remove all freed memory addresses from memory.
 
         Yields:
             None
