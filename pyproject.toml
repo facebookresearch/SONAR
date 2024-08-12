@@ -46,7 +46,7 @@ dependencies = [
       # Linters
       "mypy>=0.782",
       "pylint>=2.8.0",
-  ]
+  ],
 
   hg = [
     
