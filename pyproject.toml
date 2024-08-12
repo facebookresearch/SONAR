@@ -7,18 +7,27 @@ build-backend = "flit_core.buildapi"
 [project]
 name = "sonar-space"
 readme = "README.md"
-authors = [{name = "Meta AI Research"}]
+authors = [{ name = "Meta AI Research" }]
 requires-python = ">=3.8"
 dynamic = ["version", "description"]
-keywords = ["sentence embeddings", "sentence representation", "sentence encoder",
-            "sonar models", "speech2speech", "text2text", "speech2text",
-            "text2speech", "multi-modal models", "multi-language models"]
+keywords = [
+  "sentence embeddings",
+  "sentence representation",
+  "sentence encoder",
+  "sonar models",
+  "speech2speech",
+  "text2text",
+  "speech2text",
+  "text2speech",
+  "multi-modal models",
+  "multi-language models",
+]
 
 
 # zip_safe = false
-classifiers=[
-    "Topic :: Scientific/Engineering",
-    "Development Status :: 4 - Beta",
+classifiers = [
+  "Topic :: Scientific/Engineering",
+  "Development Status :: 4 - Beta",
 ]
 
 dependencies = [
@@ -31,28 +40,29 @@ dependencies = [
   "tqdm",
   "overrides",
   "typing_extensions",
-  "transformers",
-  "datasets",
 ]
 
+
 [project.optional-dependencies]
-  dev = [
-      # Test
-      "pytest>=4.3.0",
-      "pytest-asyncio>=0.15.0",
-      "pytest-cov>=2.6.1",
-      "coverage[toml]>=5.1",
-      # Format
-      "black==24.3.0",
-      "isort>=5.10.1",
-      # Linters
-      "mypy>=0.782",
-      "pylint>=2.8.0",
-  ]
+dev = [
+  # Test
+  "pytest>=4.3.0",
+  "pytest-asyncio>=0.15.0",
+  "pytest-cov>=2.6.1",
+  "coverage[toml]>=5.1",
+  # Format
+  "black==24.3.0",
+  "isort>=5.10.1",
+  # Linters
+  "mypy>=0.782",
+  "pylint>=2.8.0",
+]
+hg = ["transformers>=4.44.0", "datasets>=2.20.0"]
+
 
 [project.urls]
-  Source = "https://github.com/facebookresearch/SONAR"
-  Tracker = "https://github.com/facebookresearch/SONAR/issues"
+Source = "https://github.com/facebookresearch/SONAR"
+Tracker = "https://github.com/facebookresearch/SONAR/issues"
 
 [tool.flit.module]
 name = "sonar"
@@ -71,10 +81,8 @@ extend-exclude = '''
 '''
 
 [tool.flake8]
-extend_ignore = ["E", "Y"]  # Black
-per-file-ignores = [
-    "__init__.py:F401",
-]
+extend_ignore = ["E", "Y"]              # Black
+per-file-ignores = ["__init__.py:F401"]
 
 [tool.isort]
 profile = "black"
@@ -86,13 +94,9 @@ python_version = "3.8"
 show_error_codes = true
 check_untyped_defs = true
 
-files = [
-  "sonar/"
-]
+files = ["sonar/"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
 testpaths = ["tests/"]
-python_files = [
-  "test_*.py"
-]
+python_files = ["test_*.py"]
