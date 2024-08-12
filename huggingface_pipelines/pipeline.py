@@ -27,7 +27,7 @@ class PipelineOverwrites(TypedDict):
         output_path (str): The directory path for output files.
         output_file_name (str): The name of the output file.
         columns (List[str]): The columns to be processed in the dataset.
-        gc_collect_frequency (int): Frequency of garbage collection in terms of batches processed.
+        gc_collect_frequency (int): Frequency of garbage collection in terms of batches processed. Defaults to 100
     """
     batch_size: int
     device: str
@@ -61,7 +61,7 @@ class PipelineConfig(ABC):
             This is relevant as all torch models for the instantiated pipelines will use this device.
         take (int): The number of batches to process (-1 for all). Useful for
             debugging or processing subsets of large datasets.
-        gc_collect_frequency (int): Frequency of garbage collection in terms of batches processed.
+        gc_collect_frequency (int): Frequency of garbage collection in terms of batches processed. Defaults to every 100 batches.
             Set to 0 to disable explicit garbage collection.
     """
     columns: List[str]
@@ -71,7 +71,7 @@ class PipelineConfig(ABC):
     batch_size: int = 5
     device: str = "cpu"
     take: int = -1
-    gc_collect_frequency: int = 1000
+    gc_collect_frequency: int = 100
 
     def with_overwrites(self, overwrites: PipelineOverwrites) -> 'PipelineConfig':
         """
@@ -242,4 +242,10 @@ class Pipeline(ABC):
         )
 
         return updated_dataset
+
+
+class PipelineFactory(ABC):
+    @abstractmethod
+    def create_pipeline(self, config: Dict[str, Any]) -> Pipeline:
+        pass
 
