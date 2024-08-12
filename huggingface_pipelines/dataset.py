@@ -1,6 +1,5 @@
 from abc import ABC
-import uuid
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 from typing import TypedDict, Any
 
 
@@ -45,7 +44,6 @@ class DatasetConfig(ABC):
         world_size (int): The total number of shards to split the dataset into.
         rank (int): The index of the shard to retrieve (0-based).
         trust_remote_code (bool): Whether to trust remote code when loading the dataset.
-        uuid (str): A unique identifier for this configuration instance.
 
     Note:
         The `world_size` and `rank` attributes are particularly useful for distributed data processing,
@@ -60,7 +58,6 @@ class DatasetConfig(ABC):
     world_size: int = 1
     rank: int = 0
     trust_remote_code: bool = False
-    uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
 
     def load_dataset(self):
         """
@@ -90,7 +87,7 @@ class DatasetConfig(ABC):
             dataset = dataset.shard(
                 num_shards=self.world_size, index=self.rank)
 
-        return self.post_process_dataset(dataset)
+        return dataset
 
     def get_dataset_kwargs(self) -> dict[str, Any]:
         """
@@ -120,21 +117,6 @@ class DatasetConfig(ABC):
         assert self.world_size >= 1, f"Invalid world_size: {self.world_size}. It should be >= 1."
         assert 0 <= self.rank < self.world_size, f"Invalid rank: {self.rank}. It should be between 0 and {self.world_size - 1}."
 
-    def post_process_dataset(self, dataset):
-        """
-        Performs any post-processing on the dataset.
-
-        This method can be overridden in subclasses to implement
-        dataset-specific post-processing.
-
-        Args:
-            dataset (datasets.Dataset): The loaded dataset.
-
-        Returns:
-            datasets.Dataset: The post-processed dataset.
-        """
-        return dataset
-
     def with_overwrites(self, overwrites: DatasetOverwrites):
         """
         Creates a new instance with specified overwrites.
@@ -152,43 +134,4 @@ class DatasetConfig(ABC):
             new_config = config.with_overwrites({"dataset_split": "test", "world_size": 4})
         """
         return replace(self, **overwrites)
-
-
-@dataclass
-class TextDatasetConfig(DatasetConfig):
-    """
-    Configuration for text datasets.
-
-    This class inherits from BaseDatasetConfig and can be used for
-    text-specific dataset configurations.
-    """
-
-
-@dataclass
-class AudioDatasetConfig(DatasetConfig):
-    """
-    Configuration for audio datasets.
-
-    This class inherits from BaseDatasetConfig and includes
-    audio-specific attributes and processing.
-
-    Attributes:
-        sampling_rate (int): The target sampling rate for audio data.
-    """
-    sampling_rate: int = 16000
-
-    def post_process_dataset(self, dataset):
-        """
-        Performs audio-specific post-processing on the dataset.
-
-        This method can be used to implement audio-specific processing
-        such as resampling or feature extraction.
-
-        Args:
-            dataset (datasets.Dataset): The loaded audio dataset.
-
-        Returns:
-            datasets.Dataset: The post-processed audio dataset.
-        """
-        return dataset
 
