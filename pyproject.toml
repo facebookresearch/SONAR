@@ -50,6 +50,13 @@ dependencies = [
       "pylint>=2.8.0",
   ]
 
+  hg = [
+    "transformers>=4.44.0",
+    "datasets>=2.20.0"
+  ]
+
+
+
 [project.urls]
   Source = "https://github.com/facebookresearch/SONAR"
   Tracker = "https://github.com/facebookresearch/SONAR/issues"
