@@ -40,6 +40,7 @@ class PipelineConfig(ABC):
         gc_collect_frequency (int): Frequency of garbage collection in terms of batches processed. Defaults to every 100 batches.
             Set to 0 to disable explicit garbage collection.
     """
+
     columns: List[str]
     output_path: str
     output_column_suffix: str = "results"
@@ -78,8 +79,11 @@ class Pipeline(ABC):
         try:
             yield
         finally:
-            if torch.cuda.is_available() and self.config.device == 'cuda':
-                if self.config.gc_collect_frequency > 0 and self.batch_count % self.config.gc_collect_frequency == 0:
+            if torch.cuda.is_available() and self.config.device == "cuda":
+                if (
+                    self.config.gc_collect_frequency > 0
+                    and self.batch_count % self.config.gc_collect_frequency == 0
+                ):
                     gc.collect()
                     torch.cuda.empty_cache()
 
@@ -90,6 +94,7 @@ class Pipeline(ABC):
                 result = func(self, batch)
                 self.batch_count += 1
                 return result
+
         return wrapper
 
     @abstractmethod
@@ -179,12 +184,10 @@ class Pipeline(ABC):
             Dataset: The processed dataset.
         """
         if self.config.take > 0:
-            dataset = dataset.select(
-                range(self.config.take * self.config.batch_size))
+            dataset = dataset.select(range(self.config.take * self.config.batch_size))
 
         cache_file_name = f"cache_{self.__class__.__name__}.arrow"
-        cache_file_path = os.path.join(
-            self.config.output_path, cache_file_name)
+        cache_file_path = os.path.join(self.config.output_path, cache_file_name)
 
         def process_and_manage_resources(batch):
             with self.resource_manager():
