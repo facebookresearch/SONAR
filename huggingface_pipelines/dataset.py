@@ -76,7 +76,9 @@ class DatasetConfig(ABC):
         Note:
             Ensure that the 'datasets' library is installed before calling this method.
         """
-        from datasets import load_dataset
+        # We ignore because no offical HF stubs available
+
+        from datasets import load_dataset  # type: ignore
 
         dataset_kwargs = self.get_dataset_kwargs()
         dataset = load_dataset(**dataset_kwargs)
