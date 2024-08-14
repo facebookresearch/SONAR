@@ -72,6 +72,14 @@ class MetricAnalyzerPipeline(Pipeline):
         Returns:
             Dict[str, Any]: The updated batch with the metric scores, predictions, and references.
         """
+
+        # Check if the lengths of columns and reconstructed_columns match
+        if len(self.config.columns) != len(self.config.reconstructed_columns):
+            raise ValueError(
+                f"Mismatch in number of columns ({len(self.config.columns)}) "
+                f"and reconstructed columns ({len(self.config.reconstructed_columns)})"
+            )
+
         for column, reconstructed_column in zip(
             self.config.columns, self.config.reconstructed_columns
         ):
@@ -81,8 +89,7 @@ class MetricAnalyzerPipeline(Pipeline):
             if isinstance(original_data[0], list):
                 original_data = [" ".join(item) for item in original_data]
             if isinstance(reconstructed_data[0], list):
-                reconstructed_data = [" ".join(item)
-                                      for item in reconstructed_data]
+                reconstructed_data = [" ".join(item) for item in reconstructed_data]
 
             references = [[ref.split()] for ref in original_data]
             predictions = [pred.split() for pred in reconstructed_data]
