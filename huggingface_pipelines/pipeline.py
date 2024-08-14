@@ -22,6 +22,7 @@ def manage_resources(func):
             result = func(self, *args, **kwargs)
             self.batch_count += 1
             return result
+
     return wrapper
 
 
@@ -184,12 +185,10 @@ class Pipeline(ABC):
             Dataset: The processed dataset.
         """
         if self.config.take > 0:
-            dataset = dataset.select(
-                range(self.config.take * self.config.batch_size))
+            dataset = dataset.select(range(self.config.take * self.config.batch_size))
 
         cache_file_name = f"cache_{self.__class__.__name__}.arrow"
-        cache_file_path = os.path.join(
-            self.config.output_path, cache_file_name)
+        cache_file_path = os.path.join(self.config.output_path, cache_file_name)
 
         def process_and_manage_resources(batch):
             with self.resource_manager():
