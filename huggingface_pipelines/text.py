@@ -119,7 +119,7 @@ class HFEmbeddingToTextPipeline(Pipeline):
         """
         for column in self.config.columns:
             embeddings = batch[column]
-            assert all(isinstance(item, np.array) for item in embeddings), \
+            assert all(isinstance(item, list) for item in embeddings), \
                 f"Column {column} must contain only lists of embeddings, not individual embeddings."
 
             all_embeddings = np.vstack([np.array(embed)
@@ -338,4 +338,3 @@ class TextToEmbeddingPipelineFactory(PipelineFactory):
         """
         pipeline_config = TextToEmbeddingPipelineConfig(**config)
         return HFTextToEmbeddingPipeline(pipeline_config)
-
