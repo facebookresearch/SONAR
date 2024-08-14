@@ -1,6 +1,6 @@
 from abc import ABC
 from dataclasses import dataclass, replace
-from typing import Any, Dict, TypedDict
+from typing import Any, Dict, Optional, TypedDict
 
 
 class DatasetOverwrites(TypedDict, total=False):
@@ -54,7 +54,7 @@ class DatasetConfig(ABC):
     dataset_split: str
     output_dir: str
     streaming: bool = False
-    config: str = None
+    config: Optional[str] = None
     world_size: int = 1
     rank: int = 0
     trust_remote_code: bool = False
