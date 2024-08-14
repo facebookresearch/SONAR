@@ -8,11 +8,21 @@ from functools import wraps
 from typing import Any, Dict, List
 
 import torch
-from datasets import Dataset, IterableDataset
+from datasets import Dataset, IterableDataset  # type: ignore
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def manage_resources(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        with self.resource_manager():
+            result = func(self, *args, **kwargs)
+            self.batch_count += 1
+            return result
+    return wrapper
 
 
 @dataclass
@@ -86,16 +96,6 @@ class Pipeline(ABC):
                 ):
                     gc.collect()
                     torch.cuda.empty_cache()
-
-    def manage_resources(func):
-        @wraps(func)
-        def wrapper(self, batch):
-            with self.resource_manager():
-                result = func(self, batch)
-                self.batch_count += 1
-                return result
-
-        return wrapper
 
     @abstractmethod
     @manage_resources
@@ -184,10 +184,12 @@ class Pipeline(ABC):
             Dataset: The processed dataset.
         """
         if self.config.take > 0:
-            dataset = dataset.select(range(self.config.take * self.config.batch_size))
+            dataset = dataset.select(
+                range(self.config.take * self.config.batch_size))
 
         cache_file_name = f"cache_{self.__class__.__name__}.arrow"
-        cache_file_path = os.path.join(self.config.output_path, cache_file_name)
+        cache_file_path = os.path.join(
+            self.config.output_path, cache_file_name)
 
         def process_and_manage_resources(batch):
             with self.resource_manager():
