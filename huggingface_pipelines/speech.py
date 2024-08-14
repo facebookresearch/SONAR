@@ -1,48 +1,16 @@
 import os
 import torch
 from typing import Dict, Any
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from sonar.inference_pipelines.speech import SpeechToEmbeddingModelPipeline
 import tempfile
 import soundfile as sf
 import logging
-from .pipeline import Pipeline, PipelineConfig, PipelineOverwrites
+from .pipeline import Pipeline, PipelineConfig
 from .dataset import DatasetConfig
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-class HFSpeechToEmbeddingOverwrites(PipelineOverwrites, total=False):
-    """
-    Overwrite options for HFSpeechToEmbeddingPipeline configuration.
-
-    Attributes:
-        encoder_model (str): The name or path of the encoder model to use.
-        fbank_dtype (torch.dtype): The dtype for the fbank features.
-        n_parallel (int): Number of parallel processes for audio processing.
-        pad_idx (int): The index used for padding.
-        audio_column (str): The name of the column containing audio data.
-
-
-    Example :
-
-        overwrites = HFSpeechToEmbeddingOverwrites(
-
-                        encoder = "sonar_basic_text_encoder",
-                        fbank_dtype = torch.float32,
-                        n_parallel = 4,
-                        pad_idx = 2,
-                        audio_column = "audio"
-
-                    )
-
-    """
-    encoder_model: str
-    fbank_dtype: torch.dtype
-    n_parallel: int
-    pad_idx: int
-    audio_column: str
 
 
 @dataclass
@@ -70,9 +38,9 @@ class AudioDatasetConfig(DatasetConfig):
 
 
 @dataclass
-class HFSpeechToEmbeddingPipelineConfig(PipelineConfig):
+class HFAudioToEmbeddingPipelineConfig(PipelineConfig):
     """
-    Configuration class for HFSpeechToEmbeddingPipeline.
+    Configuration class for HFAudioToEmbeddingPipeline.
 
     Attributes:
         encoder_model (str): The name or path of the encoder model to use.
@@ -82,7 +50,7 @@ class HFSpeechToEmbeddingPipelineConfig(PipelineConfig):
         audio_column (str): The name of the column containing audio data. Defaults to "audio".
     Example:
 
-        pipeline_config = HFSpeechToEmbeddingPipelineConfig(
+        pipeline_config = HFAudioToEmbeddingPipelineConfig(
             encoder_model="sonar_speech_encoder_large",
             fbank_dtype=torch.float16,
             n_parallel=4,
@@ -95,8 +63,6 @@ class HFSpeechToEmbeddingPipelineConfig(PipelineConfig):
             output_column_suffix="embedding"
         )
 
-        overwrites = HFSpeechToEmbeddingOverwrites(encoder_model="sonar_speech_encoder_small")
-        updated_config = pipeline_config.with_overwrites(overwrites)
     """
     encoder_model: str = "text_sonar_basic_encoder"
     fbank_dtype: torch.dtype = torch.float32
@@ -104,49 +70,37 @@ class HFSpeechToEmbeddingPipelineConfig(PipelineConfig):
     pad_idx: int = 0
     audio_column: str = "audio"
 
-    def with_overwrites(self, overwrites: HFSpeechToEmbeddingOverwrites) -> 'HFSpeechToEmbeddingPipelineConfig':
-        """
-        Create a new configuration with the specified overwrites.
 
-        Args:
-            overwrites (HFSpeechToEmbeddingOverwrites): Overwrite values for the configuration.
-
-        Returns:
-            HFSpeechToEmbeddingPipelineConfig: A new configuration instance with applied overwrites.
-        """
-        return replace(self, **overwrites)
-
-
-class HFSpeechToEmbeddingPipeline(Pipeline):
+class HFAudioToEmbeddingPipeline(Pipeline):
     """
-    A pipeline for converting speech audio to embeddings using a HuggingFace model.
+    A pipeline for converting audio to embeddings using a HuggingFace model.
 
     This pipeline processes batches of audio data, converting them to embeddings
     using a specified encoder model. It handles temporary file creation for audio
     processing and ensures consistent embedding shapes across the batch.
 
     Attributes:
-        config (HFSpeechToEmbeddingPipelineConfig): The configuration for this pipeline.
+        config (HFAudioToEmbeddingPipelineConfig): The configuration for this pipeline.
         model (SpeechToEmbeddingModelPipeline): The underlying model used for embedding generation.
 
     Example:
 
-        pipeline_config = HFSpeechToEmbeddingPipelineConfig(
+        pipeline_config = HFAudioToEmbeddingPipelineConfig(
             encoder_model="sonar_speech_encoder",
             device="cuda",
             batch_size=16,
             audio_column="audio"
         )
 
-        pipeline = HFSpeechToEmbeddingPipeline(pipeline_config)
+        pipeline = HFAudioToEmbeddingPipeline(pipeline_config)
     """
 
-    def __init__(self, config: HFSpeechToEmbeddingPipelineConfig):
+    def __init__(self, config: HFAudioToEmbeddingPipelineConfig):
         """
-        Initialize the HFSpeechToEmbeddingPipeline.
+        Initialize the HFAudioToEmbeddingPipeline.
 
         Args:
-            config (HFSpeechToEmbeddingPipelineConfig): The configuration for this pipeline.
+            config (HFAudioToEmbeddingPipelineConfig): The configuration for this pipeline.
         """
         self.config = config
         self.model = SpeechToEmbeddingModelPipeline(
@@ -187,7 +141,7 @@ class HFSpeechToEmbeddingPipeline(Pipeline):
                              audio_data['array'], audio_data['sampling_rate'])
                     audio_inputs.append(temp_file.name)
                 else:
-                    logger.warning(f"Invalid audio data format: {audio_data}")
+                    logger.trace(f"Invalid audio data format: {audio_data}")
 
             if not audio_inputs:
                 logger.warning("No valid audio inputs found in batch.")
