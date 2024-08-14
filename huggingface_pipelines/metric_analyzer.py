@@ -70,6 +70,12 @@ class MetricAnalyzerPipeline(Pipeline):
             original_data = batch[column]
             reconstructed_data = batch[reconstructed_column]
 
+            if isinstance(original_data[0], list):
+                original_data = [' '.join(item) for item in original_data]
+            if isinstance(reconstructed_data[0], list):
+                reconstructed_data = [' '.join(item)
+                                      for item in reconstructed_data]
+
             references = [[ref.split()] for ref in original_data]
             predictions = [pred.split() for pred in reconstructed_data]
 
