@@ -1,6 +1,6 @@
 from abc import ABC
 from dataclasses import dataclass, replace
-from typing import Any, TypedDict, Dict
+from typing import Any, Dict, TypedDict
 
 
 class DatasetOverwrites(TypedDict, total=False):
