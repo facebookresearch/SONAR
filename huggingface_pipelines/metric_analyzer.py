@@ -2,15 +2,9 @@ import logging
 from typing import List, Dict, Any
 from dataclasses import dataclass, field
 from datasets import load_metric
-from .pipeline import PipelineConfig, Pipeline, PipelineOverwrites
+from .pipeline import PipelineConfig, Pipeline, PipelineFactory
 
 logger = logging.getLogger(__name__)
-
-
-class MetricOverwrites(PipelineOverwrites, total=False):
-    metrics: List[str]
-    low_score_threshold: float
-    reconstructed_columns: List[str]
 
 
 @dataclass
@@ -28,9 +22,6 @@ class MetricPipelineConfig(PipelineConfig):
     metrics: List[str] = field(default_factory=list)
     low_score_threshold: float = 0.5
     reconstructed_columns: List[str] = field(default_factory=list)
-
-    def with_overwrites(self, overwrites: MetricOverwrites) -> 'MetricPipelineConfig':
-        return MetricPipelineConfig(**{**self.__dict__, **overwrites})
 
 
 class MetricAnalyzerPipeline(Pipeline):
@@ -79,12 +70,6 @@ class MetricAnalyzerPipeline(Pipeline):
             original_data = batch[column]
             reconstructed_data = batch[reconstructed_column]
 
-            # Join back into strings
-
-            original_data = [' '.join(item) for item in original_data]
-            reconstructed_data = [' '.join(item)
-                                  for item in reconstructed_data]
-
             references = [[ref.split()] for ref in original_data]
             predictions = [pred.split() for pred in reconstructed_data]
 
@@ -105,4 +90,10 @@ class MetricAnalyzerPipeline(Pipeline):
                     score < self.config.low_score_threshold for score in batch[output_column]]
 
         return batch
+
+
+class MetricAnalyzerPipelineFactory(PipelineFactory):
+    def create_pipeline(self, config: Dict[str, Any]) -> Pipeline:
+        pipeline_config = MetricPipelineConfig(**config)
+        return MetricAnalyzerPipeline(pipeline_config)
 
