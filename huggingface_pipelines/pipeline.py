@@ -1,42 +1,18 @@
-from abc import ABC, abstractmethod
-from typing import List, TypedDict, Dict, Any
-import logging
-from dataclasses import dataclass, replace
-from datasets import Dataset, IterableDataset
-import os
-from contextlib import contextmanager
-import torch
 import gc
+import logging
+import os
+from abc import ABC, abstractmethod
+from contextlib import contextmanager
+from dataclasses import dataclass
+from functools import wraps
+from typing import Any, Dict, List
+
+import torch
+from datasets import Dataset, IterableDataset
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-class PipelineOverwrites(TypedDict):
-    """
-    A TypedDict representing the possible overwrites for a PipelineConfig.
-
-    This allows for dynamic modification of pipeline configuration parameters.
-
-    Attributes:
-        batch_size (int): The batch size for processing data.
-        device (str): The device to use for computation (e.g., 'cpu', 'cuda').
-        cache_to_arrow (bool): Whether to cache results in Arrow format.
-        take (int): The number of batches to process (-1 for all).
-        output_path (str): The directory path for output files.
-        output_file_name (str): The name of the output file.
-        columns (List[str]): The columns to be processed in the dataset.
-        gc_collect_frequency (int): Frequency of garbage collection in terms of batches processed. Defaults to 100
-    """
-    batch_size: int
-    device: str
-    cache_to_arrow: bool
-    take: int
-    output_path: str
-    output_file_name: str
-    columns: List[str]
-    gc_collect_frequency: int
 
 
 @dataclass
@@ -66,27 +42,12 @@ class PipelineConfig(ABC):
     """
     columns: List[str]
     output_path: str
-    output_column_suffix: str
+    output_column_suffix: str = "results"
     load_from_cache_file: bool = True
     batch_size: int = 5
     device: str = "cpu"
     take: int = -1
     gc_collect_frequency: int = 100
-
-    def with_overwrites(self, overwrites: PipelineOverwrites) -> 'PipelineConfig':
-        """
-        Create a new PipelineConfig with the specified overwrites.
-
-        This method allows for the creation of a new configuration object
-        with selective parameter updates without modifying the original.
-
-        Args:
-            overwrites (PipelineOverwrites): A dictionary of configuration overwrites.
-
-        Returns:
-            PipelineConfig: A new PipelineConfig instance with the applied overwrites.
-        """
-        return replace(self, **overwrites)
 
 
 class Pipeline(ABC):
@@ -114,28 +75,25 @@ class Pipeline(ABC):
 
     @contextmanager
     def resource_manager(self):
-        """
-        Context manager to efficiently initialize and free pipeline resources.
-
-        This method ensures that CUDA memory is properly managed when using GPU.
-        It clears the CUDA cache and optionally performs garbage collection
-        based on the configured frequency.
-
-        Yields:
-            None
-        """
-
-        if torch.cuda.is_available() and self.config.device == 'cuda':
-            if self.config.gc_collect_frequency > 0 and self.batch_count % self.config.gc_collect_frequency == 0:
-                gc.collect()
-                torch.cuda.empty_cache()
-
         try:
             yield
         finally:
-            self.batch_count += 1
+            if torch.cuda.is_available() and self.config.device == 'cuda':
+                if self.config.gc_collect_frequency > 0 and self.batch_count % self.config.gc_collect_frequency == 0:
+                    gc.collect()
+                    torch.cuda.empty_cache()
+
+    def manage_resources(func):
+        @wraps(func)
+        def wrapper(self, batch):
+            with self.resource_manager():
+                result = func(self, batch)
+                self.batch_count += 1
+                return result
+        return wrapper
 
     @abstractmethod
+    @manage_resources
     def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
         """
         Processes a single batch of data and returns the updated batch.
@@ -248,4 +206,3 @@ class PipelineFactory(ABC):
     @abstractmethod
     def create_pipeline(self, config: Dict[str, Any]) -> Pipeline:
         pass
-
