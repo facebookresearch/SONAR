@@ -1,6 +1,6 @@
 from abc import ABC
 from dataclasses import dataclass, replace
-from typing import TypedDict, Any
+from typing import Any, TypedDict, Dict
 
 
 class DatasetOverwrites(TypedDict, total=False):
@@ -89,7 +89,7 @@ class DatasetConfig(ABC):
 
         return dataset
 
-    def get_dataset_kwargs(self) -> dict[str, Any]:
+    def get_dataset_kwargs(self) -> Dict[str, Any]:
         """
         Returns the kwargs for load_dataset function.
 
@@ -134,4 +134,3 @@ class DatasetConfig(ABC):
             new_config = config.with_overwrites({"dataset_split": "test", "world_size": 4})
         """
         return replace(self, **overwrites)
-
