@@ -1,13 +1,12 @@
-import os
 import torch
 from typing import Dict, Any
 from dataclasses import dataclass
 from sonar.inference_pipelines.speech import SpeechToEmbeddingModelPipeline
-import tempfile
-import soundfile as sf
 import logging
 from .pipeline import Pipeline, PipelineConfig
 from .dataset import DatasetConfig
+import numpy as np
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -68,7 +67,6 @@ class HFAudioToEmbeddingPipelineConfig(PipelineConfig):
     fbank_dtype: torch.dtype = torch.float32
     n_parallel: int = 4
     pad_idx: int = 0
-    audio_column: str = "audio"
 
 
 class HFAudioToEmbeddingPipeline(Pipeline):
@@ -102,6 +100,7 @@ class HFAudioToEmbeddingPipeline(Pipeline):
         Args:
             config (HFAudioToEmbeddingPipelineConfig): The configuration for this pipeline.
         """
+        super().__init__(config)
         self.config = config
         self.model = SpeechToEmbeddingModelPipeline(
             encoder=self.config.encoder_model,
@@ -123,68 +122,93 @@ class HFAudioToEmbeddingPipeline(Pipeline):
 
         Returns:
             Dict[str, Any]: The input batch dictionary with an additional key
-                '{audio_column}_embedding' containing the generated embeddings.
+                '{column}_{suffix}' containing the generated embeddings.
 
         Raises:
             Exception: If there's an error during batch processing or embedding generation.
         """
+
         try:
-            audio_inputs = []
-            temp_files = []
+            for column in self.config.columns:
+                if column not in batch:
+                    logger.warning(
+                        f"Column {column} not found in batch. Skipping.")
+                    continue
 
-            for audio_data in batch[self.config.audio_column]:
-                if isinstance(audio_data, dict) and 'array' in audio_data and 'sampling_rate' in audio_data:
-                    temp_file = tempfile.NamedTemporaryFile(
-                        delete=False, suffix='.wav')
-                    temp_files.append(temp_file)
-                    sf.write(temp_file.name,
-                             audio_data['array'], audio_data['sampling_rate'])
-                    audio_inputs.append(temp_file.name)
-                else:
-                    logger.trace(f"Invalid audio data format: {audio_data}")
+                audio_inputs = []
+                audio_data_list = batch[column]
 
-            if not audio_inputs:
-                logger.warning("No valid audio inputs found in batch.")
-                return batch
+                # Ensure audio_data_list is always a list
+                if not isinstance(audio_data_list, list):
+                    audio_data_list = [audio_data_list]
 
-            try:
-                all_embeddings = self.model.predict(
-                    input=audio_inputs,
-                    batch_size=self.config.batch_size,
-                    n_parallel=self.config.n_parallel,
-                    pad_idx=self.config.pad_idx
-                )
+                for audio_data in audio_data_list:
+                    if isinstance(audio_data, dict) and 'array' in audio_data and 'sampling_rate' in audio_data:
+                        # Handle multi-channel audio by taking the mean across channels
+                        audio_array = audio_data['array']
+                        if audio_array.ndim > 1:
+                            audio_array = np.mean(audio_array, axis=0)
 
-                # Ensure all embeddings are 2D
-                all_embeddings = [emb.unsqueeze(0) if emb.dim(
-                ) == 1 else emb for emb in all_embeddings]
+                        # Convert numpy array to torch tensor
+                        audio_tensor = torch.from_numpy(audio_array).float()
 
-                # Get the maximum sequence length and embedding dimension
-                max_seq_len = max(emb.shape[0] for emb in all_embeddings)
+                        # Ensure the tensor is 2D with shape (1, num_samples)
+                        if audio_tensor.dim() == 1:
+                            audio_tensor = audio_tensor.unsqueeze(0)
+                        elif audio_tensor.dim() > 2:
+                            raise ValueError(
+                                f"Unexpected audio tensor shape: {audio_tensor.shape}")
 
-                # Pad embeddings to have the same sequence length
-                padded_embeddings = [torch.nn.functional.pad(
-                    emb, (0, 0, 0, max_seq_len - emb.shape[0])) for emb in all_embeddings]
+                        audio_inputs.append(audio_tensor)
+                    else:
+                        logger.warning(
+                            f"Invalid audio data format in column {column}: {audio_data}")
 
-                # Stack embeddings into a single tensor
-                stacked_embeddings = torch.stack(padded_embeddings).squeeze(1)
+                if not audio_inputs:
+                    logger.warning(
+                        f"No valid audio inputs found in column {column}.")
+                    continue
 
-                batch[f"{self.config.audio_column}_embedding"] = stacked_embeddings.cpu(
-                ).numpy()
+                try:
+                    # Move tensors to the specified device
+                    audio_inputs = [tensor.to(self.config.device)
+                                    for tensor in audio_inputs]
 
-            except Exception as e:
-                logger.error(f"Error in model.predict: {str(e)}")
-                raise
+                    all_embeddings = self.model.predict(
+                        input=audio_inputs,
+                        batch_size=self.config.batch_size,
+                        n_parallel=self.config.n_parallel,
+                        pad_idx=self.config.pad_idx
+                    )
+
+                    # Ensure all embeddings are 2D
+                    all_embeddings = [emb.unsqueeze(0) if emb.dim(
+                    ) == 1 else emb for emb in all_embeddings]
+
+                    # Get the maximum sequence length
+                    max_seq_len = max(emb.shape[0] for emb in all_embeddings)
+
+                    # Pad embeddings to have the same sequence length
+                    padded_embeddings = [torch.nn.functional.pad(
+                        emb, (0, 0, 0, max_seq_len - emb.shape[0])) for emb in all_embeddings]
+
+                    # Stack embeddings into a single tensor
+                    stacked_embeddings = torch.stack(
+                        padded_embeddings).unsqueeze(1)
+
+                    batch[f"{column}_{self.config.output_column_suffix}"] = stacked_embeddings.cpu(
+                    ).numpy()
+
+                except Exception as e:
+                    logger.error(
+                        f"Error in model.predict for column {column}: {str(e)}")
+                    # Instead of raising, we'll set the output to None and continue processing
+                    batch[f"{column}_{self.config.output_column_suffix}"] = None
 
         except Exception as e:
             logger.error(f"Error processing batch: {str(e)}")
             logger.error(f"Batch content: {batch}")
-            raise
-
-        finally:
-            for temp_file in temp_files:
-                temp_file.close()
-                os.unlink(temp_file.name)
+            # Instead of raising, we'll return the batch as is
 
         return batch
 
