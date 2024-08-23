@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional
 
 import numpy as np
-import spacy
+import spacy  # type: ignore
 import torch
 from spacy.language import Language  # type: ignore
 
@@ -114,7 +114,8 @@ class TextSegmentationPipeline(Pipeline):
             nlp = pipeline.load_spacy_model('en')
         """
         if lang_code not in self.SPACY_MODELS:
-            raise ValueError(f"No installed model found for language code: {lang_code}")
+            raise ValueError(
+                f"No installed model found for language code: {lang_code}")
         return spacy.load(self.SPACY_MODELS[lang_code])
 
     def segment_text(self, text: Optional[str]) -> List[str]:
@@ -308,7 +309,8 @@ class HFEmbeddingToTextPipeline(Pipeline):
             start_idx = 0
             for item in embeddings:
                 end_idx = start_idx + len(item)
-                reconstructed_texts.append(all_decoded_texts[start_idx:end_idx])
+                reconstructed_texts.append(
+                    all_decoded_texts[start_idx:end_idx])
                 start_idx = end_idx
 
             batch[f"{column}_{self.config.output_column_suffix}"] = reconstructed_texts
@@ -340,7 +342,8 @@ class HFEmbeddingToTextPipeline(Pipeline):
             decoded_texts = []
 
             for i in range(0, len(embeddings), self.config.batch_size):
-                batch_embeddings = embeddings_tensor[i : i + self.config.batch_size]
+                batch_embeddings = embeddings_tensor[i: i +
+                                                     self.config.batch_size]
                 batch_decoded = self.t2t_model.predict(
                     batch_embeddings,
                     target_lang=self.config.target_lang,
@@ -440,13 +443,15 @@ class HFTextToEmbeddingPipeline(Pipeline):
                 start_idx = 0
                 for item in batch[column]:
                     end_idx = start_idx + len(item)
-                    sentence_embeddings.append(all_embeddings[start_idx:end_idx])
+                    sentence_embeddings.append(
+                        all_embeddings[start_idx:end_idx])
                     start_idx = end_idx
 
                 batch[f"{column}_{self.config.output_column_suffix}"] = (
                     sentence_embeddings
                 )
-                logger.debug(f"{column} column embeddings: {batch[column][:5]}")
+                logger.debug(
+                    f"{column} column embeddings: {batch[column][:5]}")
             else:
                 logger.warning(f"Column {column} not found in batch.")
 
@@ -468,7 +473,7 @@ class HFTextToEmbeddingPipeline(Pipeline):
         try:
             embeddings: List[torch.Tensor] = []
             for i in range(0, len(texts), self.config.batch_size):
-                batch_texts = texts[i : i + self.config.batch_size]
+                batch_texts = texts[i: i + self.config.batch_size]
                 batch_embeddings = self.t2vec_model.predict(
                     batch_texts,
                     source_lang=self.config.source_lang,
