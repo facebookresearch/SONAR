@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Literal, Optional
 import numpy as np
 import spacy
 import torch
-from spacy.language import Language
+from spacy.language import Language  # type: ignore
 
 from sonar.inference_pipelines.text import (
     EmbeddingToTextModelPipeline,
