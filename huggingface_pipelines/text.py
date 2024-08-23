@@ -1,14 +1,19 @@
-from sonar.inference_pipelines.text import TextToEmbeddingModelPipeline, EmbeddingToTextModelPipeline
 import logging
-from typing import List, Dict, Any, Optional, Literal
-from .pipeline import Pipeline, PipelineConfig, PipelineFactory
-import torch
 from dataclasses import dataclass
+from typing import Any, Dict, List, Literal, Optional
+
 import numpy as np
-from .dataset import DatasetConfig
 import spacy
+import torch
 from spacy.language import Language
 
+from sonar.inference_pipelines.text import (
+    EmbeddingToTextModelPipeline,
+    TextToEmbeddingModelPipeline,
+)
+
+from .dataset import DatasetConfig  # type: ignore
+from .pipeline import Pipeline, PipelineConfig, PipelineFactory  # type: ignore
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -213,7 +218,7 @@ class TextToEmbeddingPipelineConfig(PipelineConfig):
             max_seq_len=512
         )
     """
-    max_seq_len: int = None
+    max_seq_len: Optional[int] = None
     encoder_model: str = "text_sonar_basic_encoder"
     source_lang: str = "eng_Latn"
 
@@ -284,7 +289,7 @@ class HFEmbeddingToTextPipeline(Pipeline):
             Dict[str, List[str]]: Processed batch with decoded texts.
         """
         for column in self.config.columns:
-            embeddings = batch[column]
+            embeddings: List[np.ndarray] = batch[column]
             assert all(isinstance(item, list) for item in embeddings), \
                 f"Column {column} must contain only lists of embeddings, not individual embeddings."
 
@@ -454,7 +459,7 @@ class HFTextToEmbeddingPipeline(Pipeline):
             Exception: If there's an error during encoding.
         """
         try:
-            embeddings = []
+            embeddings: List[torch.Tensor] = []
             for i in range(0, len(texts), self.config.batch_size):
                 batch_texts = texts[i:i + self.config.batch_size]
                 batch_embeddings = self.t2vec_model.predict(
@@ -504,4 +509,3 @@ class TextToEmbeddingPipelineFactory(PipelineFactory):
         """
         pipeline_config = TextToEmbeddingPipelineConfig(**config)
         return HFTextToEmbeddingPipeline(pipeline_config)
-

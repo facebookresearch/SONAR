@@ -1,15 +1,16 @@
-import pytest
-import numpy as np
+from typing import Any, Dict
 from unittest.mock import Mock, patch
-from typing import Dict, Any
+
+import numpy as np
+import pytest
 
 from huggingface_pipelines.text import (
-    TextToEmbeddingPipelineConfig,
     EmbeddingToTextPipelineConfig,
-    HFTextToEmbeddingPipeline,
+    EmbeddingToTextPipelineFactory,
     HFEmbeddingToTextPipeline,
+    HFTextToEmbeddingPipeline,
+    TextToEmbeddingPipelineConfig,
     TextToEmbeddingPipelineFactory,
-    EmbeddingToTextPipelineFactory
 )
 
 
