@@ -27,6 +27,7 @@ class TextDatasetConfig(DatasetConfig):
     This class inherits from BaseDatasetConfig and can be used for
     text-specific dataset configurations.
     """
+
     pass
 
 
@@ -51,9 +52,10 @@ class TextSegmentationPipelineConfig(PipelineConfig):
             handle_missing='fill'
         )
     """
+
     fill_value: Optional[str] = None
     source_lang: str = "eng_Latn"
-    handle_missing: Literal['skip', 'remove', 'fill'] = "skip"
+    handle_missing: Literal["skip", "remove", "fill"] = "skip"
 
 
 class TextSegmentationPipeline(Pipeline):
@@ -112,8 +114,7 @@ class TextSegmentationPipeline(Pipeline):
             nlp = pipeline.load_spacy_model('en')
         """
         if lang_code not in self.SPACY_MODELS:
-            raise ValueError(
-                f"No installed model found for language code: {lang_code}")
+            raise ValueError(f"No installed model found for language code: {lang_code}")
         return spacy.load(self.SPACY_MODELS[lang_code])
 
     def segment_text(self, text: Optional[str]) -> List[str]:
@@ -133,16 +134,17 @@ class TextSegmentationPipeline(Pipeline):
             sentences = pipeline.segment_text("This is a sample. It has two sentences.")
             print(sentences)  # ['This is a sample.', 'It has two sentences.']
         """
-        if text is None or (isinstance(text, str) and text.strip() == ''):
-            if self.config.handle_missing == 'skip':
+        if text is None or (isinstance(text, str) and text.strip() == ""):
+            if self.config.handle_missing == "skip":
                 return []
-            elif self.config.handle_missing == 'remove':
+            elif self.config.handle_missing == "remove":
                 return []
-            elif self.config.handle_missing == 'fill':
+            elif self.config.handle_missing == "fill":
                 return [self.config.fill_value] if self.config.fill_value else []
             else:
                 raise ValueError(
-                    f"Invalid handle_missing option: {self.config.handle_missing}")
+                    f"Invalid handle_missing option: {self.config.handle_missing}"
+                )
 
         doc = self.nlp(text)
         return [sent.text.strip() for sent in doc.sents]
@@ -165,7 +167,8 @@ class TextSegmentationPipeline(Pipeline):
         for column in self.config.columns:
             if column in batch:
                 batch[f"{column}_preprocessed"] = [
-                    self.segment_text(text) for text in batch[column]]
+                    self.segment_text(text) for text in batch[column]
+                ]
         return batch
 
 
@@ -218,6 +221,7 @@ class TextToEmbeddingPipelineConfig(PipelineConfig):
             max_seq_len=512
         )
     """
+
     max_seq_len: Optional[int] = None
     encoder_model: str = "text_sonar_basic_encoder"
     source_lang: str = "eng_Latn"
@@ -246,6 +250,7 @@ class EmbeddingToTextPipelineConfig(PipelineConfig):
             device="cuda"
         )
     """
+
     decoder_model: str = "text_sonar_basic_decoder"
     target_lang: str = "eng_Latn"
 
@@ -274,7 +279,7 @@ class HFEmbeddingToTextPipeline(Pipeline):
         self.t2t_model = EmbeddingToTextModelPipeline(
             decoder=self.config.decoder_model,
             tokenizer=self.config.decoder_model,
-            device=self.config.device
+            device=self.config.device,
         )
         logger.info("Model initialized.")
 
@@ -290,19 +295,20 @@ class HFEmbeddingToTextPipeline(Pipeline):
         """
         for column in self.config.columns:
             embeddings: List[np.ndarray] = batch[column]
-            assert all(isinstance(item, list) for item in embeddings), \
-                f"Column {column} must contain only lists of embeddings, not individual embeddings."
+            assert all(
+                isinstance(item, list) for item in embeddings
+            ), f"Column {column} must contain only lists of embeddings, not individual embeddings."
 
-            all_embeddings = np.vstack([np.array(embed)
-                                       for item in embeddings for embed in item])
+            all_embeddings = np.vstack(
+                [np.array(embed) for item in embeddings for embed in item]
+            )
             all_decoded_texts = self.decode_embeddings(all_embeddings)
 
             reconstructed_texts = []
             start_idx = 0
             for item in embeddings:
                 end_idx = start_idx + len(item)
-                reconstructed_texts.append(
-                    all_decoded_texts[start_idx:end_idx])
+                reconstructed_texts.append(all_decoded_texts[start_idx:end_idx])
                 start_idx = end_idx
 
             batch[f"{column}_{self.config.output_column_suffix}"] = reconstructed_texts
@@ -334,12 +340,11 @@ class HFEmbeddingToTextPipeline(Pipeline):
             decoded_texts = []
 
             for i in range(0, len(embeddings), self.config.batch_size):
-                batch_embeddings = embeddings_tensor[i:i +
-                                                     self.config.batch_size]
+                batch_embeddings = embeddings_tensor[i : i + self.config.batch_size]
                 batch_decoded = self.t2t_model.predict(
                     batch_embeddings,
                     target_lang=self.config.target_lang,
-                    batch_size=self.config.batch_size
+                    batch_size=self.config.batch_size,
                 )
                 decoded_texts.extend(batch_decoded)
 
@@ -407,7 +412,7 @@ class HFTextToEmbeddingPipeline(Pipeline):
         self.t2vec_model = TextToEmbeddingModelPipeline(
             encoder=self.config.encoder_model,
             tokenizer=self.config.encoder_model,
-            device=self.config.device
+            device=self.config.device,
         )
 
     def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
@@ -422,24 +427,26 @@ class HFTextToEmbeddingPipeline(Pipeline):
         """
         for column in self.config.columns:
             if column in batch:
-                assert all(isinstance(item, list) for item in batch[column]), \
-                    f"Column {column} must contain only lists of sentences, not individual strings."
+                assert all(
+                    isinstance(item, list) for item in batch[column]
+                ), f"Column {column} must contain only lists of sentences, not individual strings."
 
-                all_sentences = [sentence for item in batch[column]
-                                 for sentence in item]
+                all_sentences = [
+                    sentence for item in batch[column] for sentence in item
+                ]
                 all_embeddings = self.encode_texts(all_sentences)
 
                 sentence_embeddings = []
                 start_idx = 0
                 for item in batch[column]:
                     end_idx = start_idx + len(item)
-                    sentence_embeddings.append(
-                        all_embeddings[start_idx:end_idx])
+                    sentence_embeddings.append(all_embeddings[start_idx:end_idx])
                     start_idx = end_idx
 
-                batch[f"{column}_{self.config.output_column_suffix}"] = sentence_embeddings
-                logger.debug(
-                    f"{column} column embeddings: {batch[column][:5]}")
+                batch[f"{column}_{self.config.output_column_suffix}"] = (
+                    sentence_embeddings
+                )
+                logger.debug(f"{column} column embeddings: {batch[column][:5]}")
             else:
                 logger.warning(f"Column {column} not found in batch.")
 
@@ -461,12 +468,12 @@ class HFTextToEmbeddingPipeline(Pipeline):
         try:
             embeddings: List[torch.Tensor] = []
             for i in range(0, len(texts), self.config.batch_size):
-                batch_texts = texts[i:i + self.config.batch_size]
+                batch_texts = texts[i : i + self.config.batch_size]
                 batch_embeddings = self.t2vec_model.predict(
                     batch_texts,
                     source_lang=self.config.source_lang,
                     batch_size=self.config.batch_size,
-                    max_seq_len=self.config.max_seq_len
+                    max_seq_len=self.config.max_seq_len,
                 )
 
                 batch_embeddings = batch_embeddings.detach().cpu().numpy()
