@@ -1,12 +1,14 @@
-import torch
-from typing import Dict, Any
-from dataclasses import dataclass
-from sonar.inference_pipelines.speech import SpeechToEmbeddingModelPipeline
 import logging
-from .pipeline import Pipeline, PipelineConfig
-from .dataset import DatasetConfig
-import numpy as np
+from dataclasses import dataclass
+from typing import Any, Dict, List
 
+import numpy as np
+import torch
+
+from sonar.inference_pipelines.speech import SpeechToEmbeddingModelPipeline
+
+from .dataset import DatasetConfig  # type: ignore
+from .pipeline import Pipeline, PipelineConfig  # type:ignore
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -174,7 +176,7 @@ class HFAudioToEmbeddingPipeline(Pipeline):
                     audio_inputs = [tensor.to(self.config.device)
                                     for tensor in audio_inputs]
 
-                    all_embeddings = self.model.predict(
+                    all_embeddings: torch.Tensor = self.model.predict(
                         input=audio_inputs,
                         batch_size=self.config.batch_size,
                         n_parallel=self.config.n_parallel,
@@ -182,15 +184,16 @@ class HFAudioToEmbeddingPipeline(Pipeline):
                     )
 
                     # Ensure all embeddings are 2D
-                    all_embeddings = [emb.unsqueeze(0) if emb.dim(
+                    processed_embeddings: List[torch.Tensor] = [emb.unsqueeze(0) if emb.dim(
                     ) == 1 else emb for emb in all_embeddings]
 
                     # Get the maximum sequence length
-                    max_seq_len = max(emb.shape[0] for emb in all_embeddings)
+                    max_seq_len = max(emb.shape[0]
+                                      for emb in processed_embeddings)
 
                     # Pad embeddings to have the same sequence length
                     padded_embeddings = [torch.nn.functional.pad(
-                        emb, (0, 0, 0, max_seq_len - emb.shape[0])) for emb in all_embeddings]
+                        emb, (0, 0, 0, max_seq_len - emb.shape[0])) for emb in processed_embeddings]
 
                     # Stack embeddings into a single tensor
                     stacked_embeddings = torch.stack(
@@ -211,4 +214,3 @@ class HFAudioToEmbeddingPipeline(Pipeline):
             # Instead of raising, we'll return the batch as is
 
         return batch
-
