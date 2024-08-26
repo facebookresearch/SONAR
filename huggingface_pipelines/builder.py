@@ -5,6 +5,7 @@ import logging
 from .text import TextToEmbeddingPipelineFactory, EmbeddingToTextPipelineFactory, TextSegmentationPipelineFactory
 from .metric_analyzer import MetricAnalyzerPipelineFactory
 from .pipeline import Pipeline
+from .audio import AudioToEmbeddingPipelineFactory
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ class PipelineBuilder:
             "embedding_to_text": EmbeddingToTextPipelineFactory(),
             "text_segmentation": TextSegmentationPipelineFactory(),
             "analyze_metric": MetricAnalyzerPipelineFactory(),
+            "audio_to_embedding": AudioToEmbeddingPipelineFactory()
         }
 
     def load_config(self, dataset_name: str, operation: SupportedOperation) -> Dict[str, Any]:
