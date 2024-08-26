@@ -46,7 +46,7 @@ class PipelineBuilder:
 
     Example:
         >>> builder = PipelineBuilder()
-        >>> text_to_embedding_pipeline = builder.create_pipeline("sonar", "text_to_embedding")
+        >>> text_to_embedding_pipeline = builder.create_pipeline("dataset_name", "text_to_embedding")
         >>> processed_dataset = text_to_embedding_pipeline(input_dataset)
     """
 
