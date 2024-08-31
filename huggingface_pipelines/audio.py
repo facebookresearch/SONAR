@@ -110,6 +110,7 @@ class HFAudioToEmbeddingPipelineConfig(PipelineConfig):
     fbank_dtype: torch.dtype = torch.float32
     n_parallel: int = 4
     pad_idx: int = 0
+    dtype: np.dtype = np.dtype(np.float32)
 
 
 class HFAudioToEmbeddingPipeline(Pipeline):
@@ -259,8 +260,12 @@ class HFAudioToEmbeddingPipeline(Pipeline):
                         pad_idx=self.config.pad_idx,
                     )
 
+                    final_embeddings = (
+                        all_embeddings.cpu().numpy().astype(self.config.dtype)
+                    )
+
                     batch[f"{column}_{self.config.output_column_suffix}"] = (
-                        all_embeddings.cpu().numpy()
+                        final_embeddings
                     )
 
                 except Exception as e:
