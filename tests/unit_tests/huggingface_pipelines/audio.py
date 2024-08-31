@@ -138,8 +138,7 @@ def test_error_handling_in_model_predict(
     pipeline_config: HFAudioToEmbeddingPipelineConfig,
     sample_audio_data: Dict[str, Any],
 ) -> None:
-    mock_predict.return_value.predict.side_effect = Exception(
-        "Model prediction error")
+    mock_predict.return_value.predict.side_effect = Exception("Model prediction error")
     pipeline = HFAudioToEmbeddingPipeline(pipeline_config)
     batch: Dict[str, List[Dict[str, Any]]] = {"audio": [sample_audio_data]}
     with pytest.raises(
@@ -171,8 +170,7 @@ def test_collect_valid_audio_inputs(
     pipeline_config: HFAudioToEmbeddingPipelineConfig, sample_audio_data: Dict[str, Any]
 ) -> None:
     pipeline = HFAudioToEmbeddingPipeline(pipeline_config)
-    audio_data_list: List[Dict[str, Any]] = [
-        sample_audio_data, sample_audio_data]
+    audio_data_list: List[Dict[str, Any]] = [sample_audio_data, sample_audio_data]
     result = pipeline.collect_valid_audio_inputs(audio_data_list)
     assert len(result) == 2
     assert all(isinstance(tensor, torch.Tensor) for tensor in result)
@@ -221,8 +219,7 @@ def test_collect_valid_audio_inputs_complex(
     complex_audio_data: Dict[str, Dict[str, Any]],
 ) -> None:
     pipeline = HFAudioToEmbeddingPipeline(pipeline_config)
-    result = pipeline.collect_valid_audio_inputs(
-        list(complex_audio_data.values()))
+    result = pipeline.collect_valid_audio_inputs(list(complex_audio_data.values()))
     assert len(result) == len(complex_audio_data)
     assert all(isinstance(tensor, torch.Tensor) for tensor in result)
     assert all(tensor.dim() == 2 and tensor.size(0) == 1 for tensor in result)
@@ -234,8 +231,7 @@ def test_process_batch_with_missing_column(
     sample_audio_data: Dict[str, Any],
 ) -> None:
     pipeline = HFAudioToEmbeddingPipeline(pipeline_config)
-    batch: Dict[str, List[Dict[str, Any]]] = {
-        "wrong_column": [sample_audio_data]}
+    batch: Dict[str, List[Dict[str, Any]]] = {"wrong_column": [sample_audio_data]}
     result = pipeline.process_batch(batch)
     assert "audio_embedding" not in result
 
