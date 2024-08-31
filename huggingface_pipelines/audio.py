@@ -235,14 +235,18 @@ class HFAudioToEmbeddingPipeline(Pipeline):
         try:
             for column in self.config.columns:
                 if column not in batch:
-                    logger.warning(f"Column {column} not found in batch. Skipping.")
+                    logger.warning(
+                        f"Column {column} not found in batch. Skipping.")
                     continue
 
-                audio_inputs = self.collect_valid_audio_inputs(batch[column])
+                audio_data_list: List[Dict[str, Any]] = batch[column]
+
+                audio_inputs = self.collect_valid_audio_inputs(audio_data_list)
 
                 if not audio_inputs:
 
-                    raise ValueError(f"No valid audio inputs found in column {column}/")
+                    raise ValueError(
+                        f"No valid audio inputs found in column {column}/")
 
                 try:
                     # Move tensors to the specified device
