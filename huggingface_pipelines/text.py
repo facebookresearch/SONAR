@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Literal, Optional
 import numpy as np
 import spacy
 import torch
-from spacy.language import Language
+from spacy.language import Language  # type: ignore
 
 from sonar.inference_pipelines.text import (
     EmbeddingToTextModelPipeline,
@@ -116,7 +116,8 @@ class TextSegmentationPipeline(Pipeline):
             nlp = pipeline.load_spacy_model('en')
         """
         if lang_code not in self.SPACY_MODELS:
-            raise ValueError(f"No installed model found for language code: {lang_code}")
+            raise ValueError(
+                f"No installed model found for language code: {lang_code}")
         return spacy.load(self.SPACY_MODELS[lang_code])
 
     def segment_text(self, text: Optional[str]) -> List[str]:
@@ -322,7 +323,8 @@ class HFEmbeddingToTextPipeline(Pipeline):
                 else:
                     # Case: List of lists of embeddings
                     all_embeddings = np.vstack(
-                        [np.asarray(embed) for item in embeddings for embed in item]
+                        [np.asarray(embed)
+                         for item in embeddings for embed in item]
                     )
                     all_decoded_texts = self.decode_embeddings(all_embeddings)
 
@@ -374,7 +376,8 @@ class HFEmbeddingToTextPipeline(Pipeline):
             decoded_texts = []
 
             for i in range(0, len(embeddings), self.config.batch_size):
-                batch_embeddings = embeddings_tensor[i : i + self.config.batch_size]
+                batch_embeddings = embeddings_tensor[i: i +
+                                                     self.config.batch_size]
                 batch_decoded = self.t2t_model.predict(
                     batch_embeddings,
                     target_lang=self.config.target_lang,
@@ -517,7 +520,7 @@ class HFTextToEmbeddingPipeline(Pipeline):
         try:
             embeddings: List[np.ndarray] = []
             for i in range(0, len(texts), self.config.batch_size):
-                batch_texts = texts[i : i + self.config.batch_size]
+                batch_texts = texts[i: i + self.config.batch_size]
                 batch_embeddings = self.t2vec_model.predict(
                     batch_texts,
                     source_lang=self.config.source_lang,
