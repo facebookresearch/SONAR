@@ -1,13 +1,15 @@
-import torch
-from typing import Dict, Any, List
-from dataclasses import dataclass
-from sonar.inference_pipelines.speech import SpeechToEmbeddingModelPipeline
 import logging
-from .pipeline import Pipeline, PipelineConfig
-from .dataset import DatasetConfig
-import numpy as np
-from datasets import Audio
+from dataclasses import dataclass
+from typing import Any, Dict, List
 
+import numpy as np
+import torch
+from datasets import Audio  # type: ignore
+
+from sonar.inference_pipelines.speech import SpeechToEmbeddingModelPipeline
+
+from .dataset import DatasetConfig  # type: ignore
+from .pipeline import Pipeline, PipelineConfig  # type: ignore
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,6 +37,7 @@ class AudioDatasetConfig(DatasetConfig):
             audio_column="audio"
         )
     """
+
     sampling_rate: int = 16000
     audio_column: str = "audio"
 
@@ -65,10 +68,12 @@ class AudioDatasetConfig(DatasetConfig):
         """
         if self.audio_column in dataset.column_names:
             dataset = dataset.cast_column(
-                self.audio_column, Audio(sampling_rate=self.sampling_rate))
+                self.audio_column, Audio(sampling_rate=self.sampling_rate)
+            )
         else:
             raise ValueError(
-                f"Error: {self.audio_column} column not found in the dataset. Skipping audio processing.")
+                f"Error: {self.audio_column} column not found in the dataset. Skipping audio processing."
+            )
 
         return dataset
 
@@ -100,6 +105,7 @@ class HFAudioToEmbeddingPipelineConfig(PipelineConfig):
         )
 
     """
+
     encoder_model: str = "text_sonar_basic_encoder"
     fbank_dtype: torch.dtype = torch.float32
     n_parallel: int = 4
@@ -142,10 +148,12 @@ class HFAudioToEmbeddingPipeline(Pipeline):
         self.model = SpeechToEmbeddingModelPipeline(
             encoder=self.config.encoder_model,
             device=torch.device(self.config.device),
-            fbank_dtype=self.config.fbank_dtype
+            fbank_dtype=self.config.fbank_dtype,
         )
 
-    def collect_valid_audio_inputs(self, audio_data_list: List[Dict[str, Any]]) -> List[torch.Tensor]:
+    def collect_valid_audio_inputs(
+        self, audio_data_list: List[Dict[str, Any]]
+    ) -> List[torch.Tensor]:
         """
         Collect and process valid audio inputs from a list of audio data dictionaries.
 
@@ -172,9 +180,13 @@ class HFAudioToEmbeddingPipeline(Pipeline):
             raise ValueError("Audio data must be in list format.")
 
         for audio_data in audio_data_list:
-            if isinstance(audio_data, dict) and 'array' in audio_data and 'sampling_rate' in audio_data:
+            if (
+                isinstance(audio_data, dict)
+                and "array" in audio_data
+                and "sampling_rate" in audio_data
+            ):
                 # Handle multi-channel audio by taking the mean across channels
-                audio_array = audio_data['array']
+                audio_array = audio_data["array"]
                 if audio_array.ndim > 1:
                     audio_array = np.mean(audio_array, axis=0)
 
@@ -186,14 +198,17 @@ class HFAudioToEmbeddingPipeline(Pipeline):
                     audio_tensor = audio_tensor.unsqueeze(0)
                 elif audio_tensor.dim() > 2:
                     raise ValueError(
-                        f"Unexpected audio tensor shape: {audio_tensor.shape}")
+                        f"Unexpected audio tensor shape: {audio_tensor.shape}"
+                    )
 
                 audio_inputs.append(audio_tensor)
             else:
                 logger.error(
-                    f"Invalid audio data format in batch {audio_data_list}: {audio_data}")
+                    f"Invalid audio data format in batch {audio_data_list}: {audio_data}"
+                )
                 raise ValueError(
-                    f"Invalid audio data format in column {audio_data_list}: {audio_data}")
+                    f"Invalid audio data format in column {audio_data_list}: {audio_data}"
+                )
 
         return audio_inputs
 
@@ -220,37 +235,39 @@ class HFAudioToEmbeddingPipeline(Pipeline):
         try:
             for column in self.config.columns:
                 if column not in batch:
-                    logger.warning(
-                        f"Column {column} not found in batch. Skipping.")
+                    logger.warning(f"Column {column} not found in batch. Skipping.")
                     continue
 
                 audio_inputs = self.collect_valid_audio_inputs(batch[column])
 
                 if not audio_inputs:
 
-                    raise ValueError(
-                        f"No valid audio inputs found in column {column}/")
+                    raise ValueError(f"No valid audio inputs found in column {column}/")
 
                 try:
                     # Move tensors to the specified device
-                    audio_inputs = [tensor.to(self.config.device)
-                                    for tensor in audio_inputs]
+                    audio_inputs = [
+                        tensor.to(self.config.device) for tensor in audio_inputs
+                    ]
 
                     all_embeddings = self.model.predict(
                         input=audio_inputs,
                         batch_size=self.config.batch_size,
                         n_parallel=self.config.n_parallel,
-                        pad_idx=self.config.pad_idx
+                        pad_idx=self.config.pad_idx,
                     )
 
-                    batch[f"{column}_{self.config.output_column_suffix}"] = all_embeddings.cpu(
-                    ).numpy()
+                    batch[f"{column}_{self.config.output_column_suffix}"] = (
+                        all_embeddings.cpu().numpy()
+                    )
 
                 except Exception as e:
                     logger.error(
-                        f"Error in model.predict for column {column}: {str(e)}")
+                        f"Error in model.predict for column {column}: {str(e)}"
+                    )
                     raise ValueError(
-                        f"Error in model.predict for column {column}: {str(e)}")
+                        f"Error in model.predict for column {column}: {str(e)}"
+                    )
 
         except Exception as e:
             logger.error(f"Error processing batch: {str(e)}")
@@ -292,4 +309,3 @@ class AudioToEmbeddingPipelineFactory:
         """
         pipeline_config = HFAudioToEmbeddingPipelineConfig(**config)
         return HFAudioToEmbeddingPipeline(pipeline_config)
-
