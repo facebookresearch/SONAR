@@ -115,7 +115,8 @@ def test_process_batch_mixed_valid_invalid_data(
 def test_error_handling_in_model_predict(
     mock_predict, pipeline_config, sample_audio_data
 ):
-    mock_predict.return_value.predict.side_effect = Exception("Model prediction error")
+    mock_predict.return_value.predict.side_effect = Exception(
+        "Model prediction error")
     pipeline = HFAudioToEmbeddingPipeline(pipeline_config)
     batch = {"audio": [sample_audio_data]}
     with pytest.raises(
@@ -152,14 +153,15 @@ def test_collect_valid_audio_inputs(pipeline_config, sample_audio_data):
 
 def test_collect_valid_audio_inputs_invalid_data(pipeline_config):
     pipeline = HFAudioToEmbeddingPipeline(pipeline_config)
-    invalid_data: Dict[str, any] = [{"invalid": "data"}]
+    invalid_data: Dict[str, Any] = [{"invalid": "data"}]
     with pytest.raises(ValueError, match="Invalid audio data format in column"):
         pipeline.collect_valid_audio_inputs(invalid_data)
 
 
 def test_collect_valid_audio_inputs_multi_channel(pipeline_config):
     pipeline = HFAudioToEmbeddingPipeline(pipeline_config)
-    multi_channel_data = {"array": np.random.rand(2, 16000), "sampling_rate": 16000}
+    multi_channel_data = {"array": np.random.rand(
+        2, 16000), "sampling_rate": 16000}
     result = pipeline.collect_valid_audio_inputs([multi_channel_data])
     assert len(result) == 1
     assert result[0].shape == (1, 16000)
@@ -169,7 +171,7 @@ def test_process_complex_audio_data(
     pipeline_config, mock_speech_to_embedding_model, complex_audio_data
 ):
     pipeline = HFAudioToEmbeddingPipeline(pipeline_config)
-    batch: Dict[str, any] = {"audio": list(complex_audio_data.values())}
+    batch: Dict[str, Any] = {"audio": list(complex_audio_data.values())}
     result = pipeline.process_batch(batch)
     assert "audio_embedding" in result
     assert isinstance(result["audio_embedding"], np.ndarray)
@@ -178,7 +180,8 @@ def test_process_complex_audio_data(
 
 def test_collect_valid_audio_inputs_complex(pipeline_config, complex_audio_data):
     pipeline = HFAudioToEmbeddingPipeline(pipeline_config)
-    result = pipeline.collect_valid_audio_inputs(list(complex_audio_data.values()))
+    result = pipeline.collect_valid_audio_inputs(
+        list(complex_audio_data.values()))
     assert len(result) == len(complex_audio_data)
     assert all(isinstance(tensor, torch.Tensor) for tensor in result)
     assert all(tensor.dim() == 2 and tensor.size(0) == 1 for tensor in result)
@@ -188,7 +191,7 @@ def test_process_batch_with_missing_column(
     pipeline_config, mock_speech_to_embedding_model, sample_audio_data
 ):
     pipeline = HFAudioToEmbeddingPipeline(pipeline_config)
-    batch: Dict[str, any] = {"wrong_column": [sample_audio_data]}
+    batch: Dict[str, Any] = {"wrong_column": [sample_audio_data]}
     result = pipeline.process_batch(batch)
     assert "audio_embedding" not in result
 
@@ -231,7 +234,7 @@ def test_batch_size_handling(
         **{**pipeline_config.__dict__, "batch_size": 1}
     )
     pipeline = HFAudioToEmbeddingPipeline(config)
-    batch: Dict[str, any] = {"audio": [sample_audio_data] * 5}
+    batch: Dict[str, Any] = {"audio": [sample_audio_data] * 5}
     result = pipeline.process_batch(batch)
     assert "audio_embedding" in result
     assert result["audio_embedding"].shape == (5, 3)
