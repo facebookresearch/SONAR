@@ -1,12 +1,13 @@
-import pytest
-from typing import Dict, Any
+from typing import Any, Dict
 from unittest.mock import Mock, patch
+
+import pytest
 from datasets import load_metric
 
 from huggingface_pipelines.metric_analyzer import (
     MetricAnalyzerPipeline,
-    MetricPipelineConfig,
     MetricAnalyzerPipelineFactory,
+    MetricPipelineConfig,
 )
 
 
@@ -25,7 +26,10 @@ def sample_config():
 def sample_batch():
     return {
         "text": ["This is a test sentence.", "Another example sentence."],
-        "reconstructed_text": ["This is a test sentence.", "A different example sentence."],
+        "reconstructed_text": [
+            "This is a test sentence.",
+            "A different example sentence.",
+        ],
     }
 
 
@@ -63,15 +67,12 @@ def test_compute_metric(mock_load_metric, sample_config):
 
     pipeline = MetricAnalyzerPipeline(MetricPipelineConfig(**sample_config))
     result = pipeline.compute_metric(
-        "bleu",
-        [["This is a reference."]],
-        ["This is a prediction."]
+        "bleu", [["This is a reference."]], ["This is a prediction."]
     )
 
     assert result == {"score": 0.8}
     mock_metric.compute.assert_called_once_with(
-        predictions=["This is a prediction."],
-        references=[["This is a reference."]]
+        predictions=["This is a prediction."], references=[["This is a reference."]]
     )
 
 
@@ -103,7 +104,10 @@ def test_process_batch_with_list_input(mock_load_metric, sample_config):
     pipeline = MetricAnalyzerPipeline(MetricPipelineConfig(**sample_config))
     batch = {
         "text": [["This", "is", "a", "test"], ["Another", "example"]],
-        "reconstructed_text": [["This", "is", "a", "test"], ["A", "different", "example"]],
+        "reconstructed_text": [
+            ["This", "is", "a", "test"],
+            ["A", "different", "example"],
+        ],
     }
     result = pipeline.process_batch(batch)
 
@@ -122,8 +126,7 @@ def test_process_batch_mismatch_columns():
     pipeline = MetricAnalyzerPipeline(config)
 
     with pytest.raises(ValueError, match="Mismatch in number of columns"):
-        pipeline.process_batch(
-            {"text1": ["Test"], "reconstructed_text1": ["Test"]})
+        pipeline.process_batch({"text1": ["Test"], "reconstructed_text1": ["Test"]})
 
 
 def test_metric_analyzer_pipeline_factory(sample_config):
@@ -133,7 +136,9 @@ def test_metric_analyzer_pipeline_factory(sample_config):
     assert pipeline.config.metrics == sample_config["metrics"]
     assert pipeline.config.low_score_threshold == sample_config["low_score_threshold"]
     assert pipeline.config.columns == sample_config["columns"]
-    assert pipeline.config.reconstructed_columns == sample_config["reconstructed_columns"]
+    assert (
+        pipeline.config.reconstructed_columns == sample_config["reconstructed_columns"]
+    )
     assert pipeline.config.output_column_suffix == sample_config["output_column_suffix"]
 
 
