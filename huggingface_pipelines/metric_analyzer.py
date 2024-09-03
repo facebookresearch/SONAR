@@ -38,6 +38,8 @@ class MetricAnalyzerPipeline(Pipeline):
     A pipeline to analyze multiple metrics for different data types and reconstructed columns.
     """
 
+    config: MetricPipelineConfig
+
     def __init__(self, config: MetricPipelineConfig):
         super().__init__(config)
         self.metrics = {}
