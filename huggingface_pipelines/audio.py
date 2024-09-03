@@ -238,16 +238,14 @@ class HFAudioToEmbeddingPipeline(Pipeline):
         try:
             for column in self.config.columns:
                 if column not in batch:
-                    logger.warning(
-                        f"Column {column} not found in batch. Skipping.")
+                    logger.warning(f"Column {column} not found in batch. Skipping.")
                     continue
 
                 audio_inputs = self.collect_valid_audio_inputs(batch[column])
 
                 if not audio_inputs:
 
-                    raise ValueError(
-                        f"No valid audio inputs found in column {column}/")
+                    raise ValueError(f"No valid audio inputs found in column {column}/")
 
                 try:
                     # Move tensors to the specified device
@@ -258,8 +256,9 @@ class HFAudioToEmbeddingPipeline(Pipeline):
                     audio_embeddings: List[np.ndarray] = []
 
                     for i in range(0, len(audio_inputs), self.config.batch_size):
-                        batch_inputs = audio_inputs[i: i +
-                                                    self.config.batch_size].to(self.config.device)
+                        batch_inputs = audio_inputs[i : i + self.config.batch_size].to(
+                            self.config.device
+                        )
 
                         batch_embeddings = self.model.predict(
                             input=batch_inputs,
