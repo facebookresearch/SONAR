@@ -89,6 +89,8 @@ class TextSegmentationPipeline(Pipeline):
         "nld_Latn": "nl_core_news_sm",
     }
 
+    config: TextSegmentationPipelineConfig
+
     def __init__(self, config: TextSegmentationPipelineConfig):
         """
         Initialize the TextSegmentationPipeline with the given configuration.
@@ -281,6 +283,8 @@ class HFEmbeddingToTextPipeline(Pipeline):
         t2t_model (EmbeddingToTextModelPipeline): The model used for decoding embeddings to text.
     """
 
+    config: EmbeddingToTextPipelineConfig
+
     def __init__(self, config: EmbeddingToTextPipelineConfig):
         """
         Initialize the embedding-to-text pipeline.
@@ -289,7 +293,6 @@ class HFEmbeddingToTextPipeline(Pipeline):
             config (EmbeddingToTextPipelineConfig): Configuration for the pipeline.
         """
         super().__init__(config)
-        self.config = config
         logger.info("Initializing embedding to text model...")
         self.t2t_model = EmbeddingToTextModelPipeline(
             decoder=self.config.decoder_model,
@@ -444,6 +447,8 @@ class HFTextToEmbeddingPipeline(Pipeline):
         t2vec_model (TextToEmbeddingModelPipeline): The model used for encoding text to embeddings.
     """
 
+    config: TextToEmbeddingPipelineConfig
+
     def __init__(self, config: TextToEmbeddingPipelineConfig):
         """
         Initialize the text-to-embedding pipeline.
@@ -456,7 +461,7 @@ class HFTextToEmbeddingPipeline(Pipeline):
         self.t2vec_model = TextToEmbeddingModelPipeline(
             encoder=self.config.encoder_model,
             tokenizer=self.config.encoder_model,
-            device=self.config.device,
+            device=torch.device(self.config.device),
         )
 
     def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:

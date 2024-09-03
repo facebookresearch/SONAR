@@ -31,8 +31,8 @@ classifiers = [
 ]
 
 dependencies = [
-  "fairseq2>=0.2.0",
   "numpy>=1.21",
+  "fairseq2>=0.2.1",
   "torch",
   "torchaudio",
   "sox",
@@ -41,7 +41,6 @@ dependencies = [
   "overrides",
   "typing_extensions",
 ]
-
 
 [project.optional-dependencies]
 dev = [
@@ -58,7 +57,15 @@ dev = [
   "pylint>=2.8.0",
 ]
 
-hg = ["transformers>=4.44.0", "datasets>=2.20.0"]
+hg = [
+  "transformers>=4.44.0",
+  "datasets>=2.20.0",
+  "evaluate>=0.4.2",
+  "rouge_score>=0.1.2",
+  "nltk>=3.9",
+  "absl-py>=2.1.0",
+]
+
 
 [project.urls]
 Source = "https://github.com/facebookresearch/SONAR"
