@@ -2,7 +2,7 @@ from typing import Any, Dict
 from unittest.mock import Mock, patch
 
 import pytest
-from datasets import load_metric
+from datasets import load_metric  # type: ignore
 
 from huggingface_pipelines.metric_analyzer import (
     MetricAnalyzerPipeline,
