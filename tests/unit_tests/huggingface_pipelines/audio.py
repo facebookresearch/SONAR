@@ -1,3 +1,4 @@
+from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -9,22 +10,6 @@ from huggingface_pipelines.audio import (  # type: ignore
     HFAudioToEmbeddingPipelineConfig,
     SpeechToEmbeddingModelPipeline,
 )
-
-
-@pytest.fixture
-def mock_speech_to_embedding_model():
-    class MockSpeechToEmbeddingModelPipeline(SpeechToEmbeddingModelPipeline):
-        def __init__(self, encoder, device, fbank_dtype):
-            pass
-
-        def predict(self, input, batch_size, n_parallel, pad_idx):
-            return torch.tensor([[0.1, 0.2, 0.3]] * len(input))
-
-    with patch(
-        "huggingface_pipelines.speech.SpeechToEmbeddingModelPipeline",
-        MockSpeechToEmbeddingModelPipeline,
-    ):
-        yield
 
 
 @pytest.fixture
@@ -85,7 +70,7 @@ def test_process_batch_valid_input(
 
 def test_process_batch_empty_input(pipeline_config, mock_speech_to_embedding_model):
     pipeline = HFAudioToEmbeddingPipeline(pipeline_config)
-    batch = {"audio": []}
+    batch: Dict[str, Any] = {"audio": []}
     with pytest.raises(ValueError, match="No valid audio inputs found in column audio"):
         pipeline.process_batch(batch)
 
