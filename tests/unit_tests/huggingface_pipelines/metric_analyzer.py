@@ -57,8 +57,7 @@ def test_compute_metric(sample_config):
     pipeline.metrics["bleu"] = Mock()
     pipeline.metrics["bleu"].compute.return_value = {"score": 0.8}
 
-    result = pipeline.compute_metric(
-        "bleu", [["Hello", "world"]], ["Hello", "earth"])
+    result = pipeline.compute_metric("bleu", [["Hello", "world"]], ["Hello", "earth"])
     assert result == {"score": 0.8}
     pipeline.metrics["bleu"].compute.assert_called_once_with(
         predictions=["Hello", "earth"], references=[["Hello", "world"]]
@@ -144,4 +143,3 @@ def test_low_score_threshold(sample_config, sample_batch, score, expected):
 
     assert result["text_bleu_score_low"] == expected
     assert result["text_rouge_score_low"] == expected
-
