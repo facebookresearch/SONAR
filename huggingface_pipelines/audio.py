@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 import numpy as np
 import torch
 from datasets import Audio  # type: ignore
+from numpy.typing import DTypeLike  # type: ignore
 
 from sonar.inference_pipelines.speech import SpeechToEmbeddingModelPipeline
 
@@ -88,7 +89,7 @@ class HFAudioToEmbeddingPipelineConfig(PipelineConfig):
         fbank_dtype (torch.dtype): The dtype for the fbank features. Defaults to torch.float32.
         n_parallel (int): Number of parallel processes for audio processing. Defaults to 4.
         pad_idx (int): The index used for padding. Defaults to 0.
-        audio_column (str): The name of the column containing audio data. Defaults to "audio".
+        dtype (np.dtype) The data type of output numpy embeddings.
     Example:
 
         pipeline_config = HFAudioToEmbeddingPipelineConfig(
@@ -96,21 +97,20 @@ class HFAudioToEmbeddingPipelineConfig(PipelineConfig):
             fbank_dtype=torch.float16,
             n_parallel=4,
             pad_idx=0,
-            audio_column="audio",
             device="cuda",
             batch_size=32,
-            columns=["audio", "text"],
+            columns=["audio", "audio2"],
             output_path="/path/to/output",
             output_column_suffix="embedding"
         )
 
     """
 
-    encoder_model: str = "text_sonar_basic_encoder"
+    encoder_model: str = "sonar_speech_encoder"
     fbank_dtype: torch.dtype = torch.float32
     n_parallel: int = 4
     pad_idx: int = 0
-    dtype: np.dtype = np.dtype(np.float32)
+    dtype: DTypeLike = np.float32
 
 
 class HFAudioToEmbeddingPipeline(Pipeline):
@@ -131,7 +131,9 @@ class HFAudioToEmbeddingPipeline(Pipeline):
             encoder_model="sonar_speech_encoder",
             device="cuda",
             batch_size=16,
-            audio_column="audio"
+            n_parallel=4,
+            pad_idx = 0,
+            dtype = np.float32
         )
 
         pipeline = HFAudioToEmbeddingPipeline(pipeline_config)
@@ -145,7 +147,6 @@ class HFAudioToEmbeddingPipeline(Pipeline):
             config (HFAudioToEmbeddingPipelineConfig): The configuration for this pipeline.
         """
         super().__init__(config)
-        self.config = config
         self.model = SpeechToEmbeddingModelPipeline(
             encoder=self.config.encoder_model,
             device=torch.device(self.config.device),
@@ -239,9 +240,7 @@ class HFAudioToEmbeddingPipeline(Pipeline):
                     logger.warning(f"Column {column} not found in batch. Skipping.")
                     continue
 
-                audio_data_list: List[Dict[str, Any]] = batch[column]
-
-                audio_inputs = self.collect_valid_audio_inputs(audio_data_list)
+                audio_inputs = self.collect_valid_audio_inputs(batch[column])
 
                 if not audio_inputs:
 
@@ -253,19 +252,31 @@ class HFAudioToEmbeddingPipeline(Pipeline):
                         tensor.to(self.config.device) for tensor in audio_inputs
                     ]
 
-                    all_embeddings = self.model.predict(
-                        input=audio_inputs,
-                        batch_size=self.config.batch_size,
-                        n_parallel=self.config.n_parallel,
-                        pad_idx=self.config.pad_idx,
-                    )
+                    audio_embeddings: List[np.ndarray] = []
 
-                    final_embeddings = (
-                        all_embeddings.cpu().numpy().astype(self.config.dtype)
-                    )
+                    for i in range(0, len(audio_inputs), self.config.batch_size):
+                        batch_inputs = audio_inputs[i : i + self.config.batch_size]
 
-                    batch[f"{column}_{self.config.output_column_suffix}"] = (
-                        final_embeddings
+                        batch_embeddings = self.model.predict(
+                            input=batch_inputs,
+                            batch_size=self.config.batch_size,
+                            n_parallel=self.config.n_parallel,
+                            pad_idx=self.config.pad_idx,
+                        )
+
+                        batch_embeddings = batch_embeddings.to(self.config.device)
+
+                        batch_embeddings = (
+                            batch_embeddings.detach()
+                            .cpu()
+                            .numpy()
+                            .astype(self.config.dtype)
+                        )
+
+                        audio_embeddings.extend(batch_embeddings)
+
+                    batch[f"{column}_{self.config.output_column_suffix}"] = np.array(
+                        audio_embeddings
                     )
 
                 except Exception as e:
