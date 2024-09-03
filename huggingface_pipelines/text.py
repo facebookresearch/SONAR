@@ -117,8 +117,7 @@ class TextSegmentationPipeline(Pipeline):
             nlp = pipeline.load_spacy_model('en')
         """
         if lang_code not in self.SPACY_MODELS:
-            raise ValueError(
-                f"No installed model found for language code: {lang_code}")
+            raise ValueError(f"No installed model found for language code: {lang_code}")
         return spacy.load(self.SPACY_MODELS[lang_code])
 
     def segment_text(self, text: Optional[str]) -> List[str]:
@@ -295,7 +294,7 @@ class HFEmbeddingToTextPipeline(Pipeline):
         self.t2t_model = EmbeddingToTextModelPipeline(
             decoder=self.config.decoder_model,
             tokenizer=self.config.decoder_model,
-            device=torch.device(self.config.device)
+            device=torch.device(self.config.device),
         )
         logger.info("Model initialized.")
 
@@ -329,8 +328,7 @@ class HFEmbeddingToTextPipeline(Pipeline):
                     and not isinstance(item[0], (list, np.ndarray))
                     for item in embeddings
                 ):
-                    all_embeddings = np.asarray(
-                        embeddings, dtype=self.config.dtype)
+                    all_embeddings = np.asarray(embeddings, dtype=self.config.dtype)
                     all_decoded_texts = self.decode_embeddings(all_embeddings)
                     batch[f"{column}_{self.config.output_column_suffix}"] = (
                         all_decoded_texts
@@ -382,10 +380,9 @@ class HFEmbeddingToTextPipeline(Pipeline):
             decoded_texts = []
 
             for i in range(0, len(embeddings), self.config.batch_size):
-                batch_embeddings = embeddings[i: i + self.config.batch_size]
+                batch_embeddings = embeddings[i : i + self.config.batch_size]
                 batch_embeddings_tensor = (
-                    torch.from_numpy(batch_embeddings).float().to(
-                        self.config.device)
+                    torch.from_numpy(batch_embeddings).float().to(self.config.device)
                 )
 
                 batch_decoded = self.t2t_model.predict(
@@ -546,7 +543,7 @@ class HFTextToEmbeddingPipeline(Pipeline):
         try:
             embeddings: List[np.ndarray] = []
             for i in range(0, len(texts), self.config.batch_size):
-                batch_texts = texts[i: i + self.config.batch_size]
+                batch_texts = texts[i : i + self.config.batch_size]
                 batch_embeddings = self.t2vec_model.predict(
                     batch_texts,
                     source_lang=self.config.source_lang,
