@@ -7,7 +7,7 @@ import numpy as np
 import spacy
 import torch
 from numpy.typing import DTypeLike
-from spacy.language import Language
+from spacy.language import Language  # type: ignore
 
 from sonar.inference_pipelines.text import (
     EmbeddingToTextModelPipeline,
