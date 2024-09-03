@@ -33,7 +33,7 @@ class MetricAnalyzerPipeline(Pipeline):
     """
 
     def __init__(self, config: MetricPipelineConfig):
-        self.config = config
+        super().__init__(config)
         self.metrics = {}
         for metric_name in self.config.metrics:
             logger.info(f"Loading metric: {metric_name}...")
@@ -89,7 +89,8 @@ class MetricAnalyzerPipeline(Pipeline):
             if isinstance(original_data[0], list):
                 original_data = [" ".join(item) for item in original_data]
             if isinstance(reconstructed_data[0], list):
-                reconstructed_data = [" ".join(item) for item in reconstructed_data]
+                reconstructed_data = [" ".join(item)
+                                      for item in reconstructed_data]
 
             references = [[ref.split()] for ref in original_data]
             predictions = [pred.split() for pred in reconstructed_data]
@@ -124,3 +125,4 @@ class MetricAnalyzerPipelineFactory(PipelineFactory):
     def create_pipeline(self, config: Dict[str, Any]) -> Pipeline:
         pipeline_config = MetricPipelineConfig(**config)
         return MetricAnalyzerPipeline(pipeline_config)
+
