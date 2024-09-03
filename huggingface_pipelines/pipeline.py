@@ -8,22 +8,11 @@ from functools import wraps
 from typing import Any, Dict, List
 
 import torch
-from datasets import Dataset, IterableDataset  # type: ignore
+from datasets import Dataset, IterableDataset
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-def manage_resources(func):
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        with self.resource_manager():
-            result = func(self, *args, **kwargs)
-            self.batch_count += 1
-            return result
-
-    return wrapper
 
 
 @dataclass
@@ -39,7 +28,7 @@ class PipelineConfig(ABC):
         columns (List[str]): The columns to be processed by the pipeline.
         output_path (str): The directory path for output files.
         output_column_suffix (str): The suffix to append to output column names.
-            This is used to distinguish processed columns from original ones.
+            This is used to distinguish processed columns from original ones. These are always preceded by a '_' e.g. '_results'
         load_from_cache_file (bool): Whether to load the dataset from cache file.
             This can significantly speed up repeated processing of the same dataset.
         batch_size (int): The batch size for processing data. This affects both
@@ -51,7 +40,6 @@ class PipelineConfig(ABC):
         gc_collect_frequency (int): Frequency of garbage collection in terms of batches processed. Defaults to every 100 batches.
             Set to 0 to disable explicit garbage collection.
     """
-
     columns: List[str]
     output_path: str
     output_column_suffix: str = "results"
@@ -90,13 +78,19 @@ class Pipeline(ABC):
         try:
             yield
         finally:
-            if torch.cuda.is_available() and self.config.device == "cuda":
-                if (
-                    self.config.gc_collect_frequency > 0
-                    and self.batch_count % self.config.gc_collect_frequency == 0
-                ):
+            if torch.cuda.is_available() and self.config.device == 'cuda':
+                if self.config.gc_collect_frequency > 0 and self.batch_count % self.config.gc_collect_frequency == 0:
                     gc.collect()
                     torch.cuda.empty_cache()
+
+    def manage_resources(func):
+        @wraps(func)
+        def wrapper(self, batch):
+            with self.resource_manager():
+                result = func(self, batch)
+                self.batch_count += 1
+                return result
+        return wrapper
 
     @abstractmethod
     @manage_resources
@@ -185,10 +179,12 @@ class Pipeline(ABC):
             Dataset: The processed dataset.
         """
         if self.config.take > 0:
-            dataset = dataset.select(range(self.config.take * self.config.batch_size))
+            dataset = dataset.select(
+                range(self.config.take * self.config.batch_size))
 
         cache_file_name = f"cache_{self.__class__.__name__}.arrow"
-        cache_file_path = os.path.join(self.config.output_path, cache_file_name)
+        cache_file_path = os.path.join(
+            self.config.output_path, cache_file_name)
 
         def process_and_manage_resources(batch):
             with self.resource_manager():
@@ -210,3 +206,4 @@ class PipelineFactory(ABC):
     @abstractmethod
     def create_pipeline(self, config: Dict[str, Any]) -> Pipeline:
         pass
+
