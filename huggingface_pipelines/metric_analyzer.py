@@ -2,9 +2,9 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
-from datasets import load_metric  # type: ignore
+import evaluate  # type: ignore
 
-from .pipeline import Pipeline, PipelineConfig, PipelineFactory  # type: ignore
+from huggingface_pipelines.pipeline import Pipeline, PipelineConfig, PipelineFactory  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,9 @@ class MetricPipelineConfig(PipelineConfig):
 
     metrics: List[str] = field(default_factory=list)
     low_score_threshold: float = 0.5
+    columns: List[str] = field(default_factory=list)
     reconstructed_columns: List[str] = field(default_factory=list)
+    output_column_suffix: str = "results"
 
 
 class MetricAnalyzerPipeline(Pipeline):
@@ -37,7 +39,7 @@ class MetricAnalyzerPipeline(Pipeline):
         self.metrics = {}
         for metric_name in self.config.metrics:
             logger.info(f"Loading metric: {metric_name}...")
-            self.metrics[metric_name] = load_metric(metric_name)
+            self.metrics[metric_name] = evaluate.load(metric_name)
             logger.info(f"Metric {metric_name} loaded successfully.")
 
     def compute_metric(
@@ -55,7 +57,6 @@ class MetricAnalyzerPipeline(Pipeline):
             Dict[str, Any]: A dictionary containing the metric score.
         """
         logger.info(f"Computing {metric_name} score...")
-
         metric_score = self.metrics[metric_name].compute(
             predictions=predictions, references=references
         )
@@ -72,7 +73,6 @@ class MetricAnalyzerPipeline(Pipeline):
         Returns:
             Dict[str, Any]: The updated batch with the metric scores, predictions, and references.
         """
-
         # Check if the lengths of columns and reconstructed_columns match
         if len(self.config.columns) != len(self.config.reconstructed_columns):
             raise ValueError(
@@ -89,7 +89,8 @@ class MetricAnalyzerPipeline(Pipeline):
             if isinstance(original_data[0], list):
                 original_data = [" ".join(item) for item in original_data]
             if isinstance(reconstructed_data[0], list):
-                reconstructed_data = [" ".join(item) for item in reconstructed_data]
+                reconstructed_data = [" ".join(item)
+                                      for item in reconstructed_data]
 
             references = [[ref.split()] for ref in original_data]
             predictions = [pred.split() for pred in reconstructed_data]
@@ -124,3 +125,4 @@ class MetricAnalyzerPipelineFactory(PipelineFactory):
     def create_pipeline(self, config: Dict[str, Any]) -> Pipeline:
         pipeline_config = MetricPipelineConfig(**config)
         return MetricAnalyzerPipeline(pipeline_config)
+
