@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional
 
 import numpy as np
-import spacy
+import spacy  # type: ignore
 import torch
 from numpy.typing import DTypeLike
 from spacy.language import Language  # type: ignore
