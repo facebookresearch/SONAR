@@ -42,6 +42,7 @@ dependencies = [
   "typing_extensions",
 ]
 
+
 [project.optional-dependencies]
 dev = [
   # Test
