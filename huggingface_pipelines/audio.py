@@ -60,6 +60,7 @@ class AudioDatasetConfig(DatasetConfig):
     def process_audio_column(self, dataset):
         """
         Processes the audio column of the dataset.
+        This modifies the original column.
 
         Args:
             dataset (datasets.Dataset): The loaded dataset.
