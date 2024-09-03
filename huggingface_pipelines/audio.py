@@ -251,12 +251,15 @@ class HFAudioToEmbeddingPipeline(Pipeline):
 
                 try:
                     # Move tensors to the specified device
+                    audio_inputs = [
+                        tensor.to(self.config.device) for tensor in audio_inputs
+                    ]
 
                     audio_embeddings: List[np.ndarray] = []
 
                     for i in range(0, len(audio_inputs), self.config.batch_size):
                         batch_inputs = audio_inputs[i: i +
-                                                    self.config.batch_size]
+                                                    self.config.batch_size].to(self.config.device)
 
                         batch_embeddings = self.model.predict(
                             input=batch_inputs,
@@ -264,9 +267,6 @@ class HFAudioToEmbeddingPipeline(Pipeline):
                             n_parallel=self.config.n_parallel,
                             pad_idx=self.config.pad_idx,
                         )
-
-                        batch_embeddings = batch_embeddings.to(
-                            self.config.device)
 
                         batch_embeddings = (
                             batch_embeddings.detach()
