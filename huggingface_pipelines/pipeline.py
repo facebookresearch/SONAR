@@ -4,11 +4,10 @@ import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from dataclasses import dataclass
-from functools import wraps
 from typing import Any, Dict, List
 
 import torch
-from datasets import Dataset, IterableDataset
+from datasets import Dataset, IterableDataset  # type: ignore
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -87,18 +86,7 @@ class Pipeline(ABC):
                     gc.collect()
                     torch.cuda.empty_cache()
 
-    def manage_resources(func):
-        @wraps(func)
-        def wrapper(self, batch):
-            with self.resource_manager():
-                result = func(self, batch)
-                self.batch_count += 1
-                return result
-
-        return wrapper
-
     @abstractmethod
-    @manage_resources
     def process_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
         """
         Processes a single batch of data and returns the updated batch.
