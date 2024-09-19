@@ -1,0 +1,12 @@
+columns:
+  - text_preprocessed
+output_column_suffix: embeddings
+batch_size: 5
+max_seq_len: 512
+encoder_model: text_sonar_basic_encoder
+source_lang: eng_Latn
+take: 1
+output_path: results/ag_news
+
+
+

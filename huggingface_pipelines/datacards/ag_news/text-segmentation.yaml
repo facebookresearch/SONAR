@@ -1,0 +1,12 @@
+
+columns:
+  - text
+handle_missing: skip
+fill_value: null
+source_lang: eng_Latn
+output_column_suffix: preprocessed
+batch_size: 5
+take: 1
+output_path: "results/ag_news"
+
+

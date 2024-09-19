@@ -1,0 +1,16 @@
+
+columns:
+  - text_preprocessed
+reconstructed_columns:
+  - text_preprocessed_embeddings_reconstructed
+output_column_suffix: score
+batch_size: 5
+metrics:
+  - bleu
+low_score_threshold: 0.5
+output_path: results/ag_news
+take : 1
+
+
+
+
