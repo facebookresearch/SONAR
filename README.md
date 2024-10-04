@@ -147,6 +147,7 @@ See more complete demo notebooks :
 
 * [sonar text2text similarity and translation](examples/sonar_text_demo.ipynb)
 * [sonar speech2text and other data pipeline examples](examples/inference_pipelines.ipynb)
+* [sonar text2embedding and cosine similarity](examples/bilingual_document.ipynb)
 
 
 ## Supported languages and download links
