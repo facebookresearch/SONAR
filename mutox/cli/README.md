@@ -15,7 +15,7 @@ and recall by ∼2.5 times.
 The mutox code and model are licensed under the MIT license (see MIT_LICENSE
 file at the root of seamless_communication). The mutox model depends on SONAR
 encoders, most are under the MIT license but a few are under CC-BY-NC license.
-See the [SONAR repository](https://github.com/facebookresearch/SONAR) for
+See [SONAR](../../sonar/) for
 details.
 
 ## Dataset Languages.
@@ -60,13 +60,13 @@ sonar embedding and then classifying it through the MuTox model. The
 embedding and running the classifier on the results:
 
 ```bash
-python -m seamless_communication.cli.toxicity.mutox.mutox_speech --lang fra --audio_column ref_tgt_audio /checkpoint/bokai/seamless/toxity_mitigation/exps_v5/joined_etox/fleurs/s2t/en-xx/fra.tsv /tmp/tesmortt.tsv
+python -m mutox.mutox_speech --lang fra --audio_column ref_tgt_audio /checkpoint/bokai/seamless/toxity_mitigation/exps_v5/joined_etox/fleurs/s2t/en-xx/fra.tsv /tmp/tesmortt.tsv
 ```
 
 You can also work with text:
 
 ```bash
-python -m seamless_communication.cli.toxicity.mutox.mutox_text --lang fra_Latn sentences.txt
+python -m mutox.mutox_text --lang fra_Latn sentences.txt
 ```
 
 You can also check the mutox example notebook in this directory.
