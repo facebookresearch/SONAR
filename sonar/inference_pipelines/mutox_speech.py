@@ -19,8 +19,8 @@ from sonar.inference_pipelines.speech import (
     SpeechInferenceParams,
 )
 
-from .classifier import MutoxClassifier
-from .loader import load_mutox_model
+from sonar.models.mutox.classifier import MutoxClassifier
+from sonar.models.mutox.loader import load_mutox_model
 
 CPU_DEVICE = torch.device("cpu")
 

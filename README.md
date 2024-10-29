@@ -142,6 +142,33 @@ print(blaser_qe(src=src_embs, mt=mt_embs).item())  # 4.708
 Detailed model cards with more examples: [facebook/blaser-2.0-ref](https://huggingface.co/facebook/blaser-2.0-ref), 
 [facebook/blaser-2.0-qe](https://huggingface.co/facebook/blaser-2.0-qe). 
 
+### Classifying the toxicity of sentences with MuTox
+
+[MuTox](https://github.com/facebookresearch/seamless_communication/tree/main/src/seamless_communication/cli/toxicity/mutox), the first highly multilingual audio-based dataset with toxicity labels. The dataset consists of 20k audio utterances for English and Spanish, and 4k for the other 19 languages, and uses the multi-model and multilingual encoders from SONAR.
+
+```Python
+from sonar.models.mutox.loader import load_mutox_model
+from sonar.inference_pipelines.text import TextToEmbeddingModelPipeline
+
+t2vec_model = TextToEmbeddingModelPipeline(
+    encoder="text_sonar_basic_encoder",
+    tokenizer="text_sonar_basic_encoder",
+    device=device,
+)
+text_column='lang_txt'
+classifier = load_mutox_model(
+    "mutox",
+    device=device,
+    dtype=dtype,
+).eval()
+
+with torch.inference_mode():
+    emb = t2vec_model.predict(["De peur que le pays ne se prostitue et ne se remplisse de crimes."], source_lang='fra_Latn')
+    x = classifier(emb.to(device).half()) # tensor([[-19.7812]], device='cuda:0', dtype=torch.float16)
+```
+
+For a CLI way of running the MuTox pipeline, go to [Seamless Communication/.../MuTox](https://github.com/facebookresearch/seamless_communication/tree/main/src/seamless_communication/cli/toxicity/mutox).
+
 ### Demo notebooks
 See more complete demo notebooks :
 

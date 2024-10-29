@@ -58,7 +58,7 @@ dev = [
 ]
 
 
-hf = [
+hg = [
   "transformers>=4.44.0",
   "datasets>=2.20.0",
   "evaluate>=0.4.2",
