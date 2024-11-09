@@ -5,22 +5,19 @@
 # MIT_LICENSE file in the root directory of this source tree.
 
 from typing import Union
+
 import torch
-
+from fairseq2.data import DataPipelineBuilder
 from fairseq2.typing import Device
-from fairseq2.data import (
-    DataPipelineBuilder,
-)
 
-from sonar.models.sonar_speech.loader import load_sonar_speech_model
-from sonar.models.encoder_model import SonarEncoderModel
 from sonar.inference_pipelines.speech import (
-    SpeechToEmbeddingPipeline,
     SpeechInferenceParams,
+    SpeechToEmbeddingPipeline,
 )
-
+from sonar.models.encoder_model import SonarEncoderModel
 from sonar.models.mutox.classifier import MutoxClassifier
 from sonar.models.mutox.loader import load_mutox_model
+from sonar.models.sonar_speech.loader import load_sonar_speech_model
 
 CPU_DEVICE = torch.device("cpu")
 
@@ -32,7 +29,13 @@ class MutoxSpeechClassifierPipeline(SpeechToEmbeddingPipeline):
         encoder: Union[str, SonarEncoderModel],
         device: Device = CPU_DEVICE,
     ) -> None:
-        super().__init__(encoder)
+        if isinstance(encoder, str):
+            model = self.load_model_from_name("sonar_mutox", encoder, device=device)
+        else:
+            model = encoder
+
+        super().__init__(model)
+
         self.model.to(device).eval()
         self.mutox_classifier = mutox_classifier.to(device).eval()
 

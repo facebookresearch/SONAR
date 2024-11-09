@@ -5,14 +5,12 @@
 # MIT_LICENSE file in the root directory of this source tree.
 
 import typing as tp
-import torch
-from torch import nn
-from fairseq2.typing import DataType, Device
 
-from .classifier import (
-    MutoxClassifier,
-    MutoxConfig,
-)
+import torch
+from fairseq2.typing import DataType, Device
+from torch import nn
+
+from .classifier import MutoxClassifier, MutoxConfig
 
 
 class MutoxClassifierBuilder:
@@ -42,21 +40,21 @@ class MutoxClassifierBuilder:
         self.config = config
         self.device, self.dtype = device, dtype
 
-    def build_model(self) -> MutoxClassifier:
+    def build_model(self, activation=nn.ReLU) -> MutoxClassifier:
         model_h1 = nn.Sequential(
             nn.Dropout(0.01),
             nn.Linear(self.config.input_size, 512),
         )
 
         model_h2 = nn.Sequential(
-            nn.ReLU(),
+            activation,
             nn.Linear(512, 128),
         )
 
-        model_h3 = nn.Sequential(
-            nn.ReLU(),
-            nn.Linear(128, 1),
-        )
+        if self.config.output_prob:
+            model_h3 = nn.Sequential(activation(), nn.Linear(128, 1), nn.Sigmoid())
+        else:
+            model_h3 = nn.Sequential(activation(), nn.Linear(128, 1))
 
         model_all = nn.Sequential(
             model_h1,
@@ -64,7 +62,9 @@ class MutoxClassifierBuilder:
             model_h3,
         )
 
-        return MutoxClassifier(model_all,).to(
+        return MutoxClassifier(
+            model_all,
+        ).to(
             device=self.device,
             dtype=self.dtype,
         )

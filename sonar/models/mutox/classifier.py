@@ -5,13 +5,12 @@
 # MIT_LICENSE file in the root directory of this source tree.
 
 from dataclasses import dataclass
-import torch
-from torch import nn
-
-from fairseq2.typing import DataType, Device
-from fairseq2.models.utils.arch_registry import ArchitectureRegistry
-
 from typing import Optional
+
+import torch
+from fairseq2.models.utils.arch_registry import ArchitectureRegistry
+from fairseq2.typing import DataType, Device
+from torch import nn
 
 
 class MutoxClassifier(nn.Module):
@@ -32,6 +31,9 @@ class MutoxConfig:
 
     # size of the input embedding supported by this model
     input_size: int
+
+    # add sigmoid as last layer to output probability
+    output_prob: bool = False
 
 
 mutox_archs = ArchitectureRegistry[MutoxConfig]("mutox_classifier")

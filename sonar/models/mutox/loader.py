@@ -10,11 +10,9 @@ from fairseq2.assets import asset_store, download_manager
 from fairseq2.models.utils import ConfigLoader, ModelLoader
 
 from .builder import create_mutox_model
-from .classifier import (
-    MutoxClassifier,
-    MutoxConfig,
-    mutox_archs,
-)
+from .classifier import MutoxClassifier, MutoxConfig, mutox_archs
+
+__import__("sonar")  # Import only to update asset_store
 
 
 @mutox_archs.decorator("mutox")

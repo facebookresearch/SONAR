@@ -7,15 +7,17 @@
 import pytest
 import torch
 from torch import nn
-from unittest.mock import Mock
 
-from sonar.models.mutox.builder import MutoxConfig, MutoxClassifierBuilder, create_mutox_model
-from sonar.models.mutox.classifier import MutoxClassifier
-from sonar.models.mutox.loader import (
-    convert_mutox_checkpoint,
+from sonar.models.mutox.builder import (
+    MutoxClassifierBuilder,
+    MutoxConfig,
+    create_mutox_model,
 )
+from sonar.models.mutox.classifier import MutoxClassifier
+from sonar.models.mutox.loader import convert_mutox_checkpoint
 
 # Builder tests
+
 
 @pytest.mark.parametrize("input_size", [256, 512, 1024])
 @pytest.mark.parametrize("device", [torch.device("cpu")])
@@ -52,9 +54,10 @@ def test_create_mutox_model(input_size):
 
 # Classifier tests
 
+
 def test_mutox_classifier_forward():
     """Test that MutoxClassifier forward pass returns expected output shape."""
-    test_model= nn.Sequential(
+    test_model = nn.Sequential(
         nn.Linear(10, 5),
         nn.ReLU(),
         nn.Linear(5, 1),
@@ -63,16 +66,22 @@ def test_mutox_classifier_forward():
 
     test_input = torch.randn(3, 10)
     output = model(test_input)
-    assert output.shape == (3, 1), f"Expected output shape (3, 1), but instead got {output.shape}"
+    assert output.shape == (
+        3,
+        1,
+    ), f"Expected output shape (3, 1), but instead got {output.shape}"
 
 
 def test_mutox_config():
     """Test that MutoxConfig stores the configuration for a model."""
     config = MutoxConfig(input_size=512)
-    assert config.input_size == 512, f"Config input_size should be 512, but got {config.input_size}"
+    assert (
+        config.input_size == 512
+    ), f"Config input_size should be 512, but got {config.input_size}"
 
 
 #  Loader tests
+
 
 def test_convert_mutox_checkpoint():
     """Test convert_mutox_checkpoint correctly filters keys in the checkpoint."""
@@ -80,13 +89,17 @@ def test_convert_mutox_checkpoint():
     checkpoint = {
         "model_all.layer1.weight": torch.tensor([1.0]),
         "model_all.layer1.bias": torch.tensor([0.5]),
-        "non_model_key": torch.tensor([3.0])
+        "non_model_key": torch.tensor([3.0]),
     }
     config = MutoxConfig(input_size=1024)
     converted = convert_mutox_checkpoint(checkpoint, config)
 
     # Verify only 'model_all.' keys are retained in the converted dictionary
     assert "model" in converted, "Converted checkpoint should contain a 'model' key"
-    assert "model_all.layer1.weight" in converted["model"], "Expected 'model_all.layer1.weight'"
-    assert "model_all.layer1.bias" in converted["model"], "Expected 'model_all.layer1.bias'"
+    assert (
+        "model_all.layer1.weight" in converted["model"]
+    ), "Expected 'model_all.layer1.weight'"
+    assert (
+        "model_all.layer1.bias" in converted["model"]
+    ), "Expected 'model_all.layer1.bias'"
     assert "non_model_key" not in converted["model"], "Unexpected 'non_model_key'"
