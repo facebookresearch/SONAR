@@ -30,17 +30,21 @@ class MutoxSpeechClassifierPipeline(SpeechToEmbeddingPipeline):
         device: Device = CPU_DEVICE,
     ) -> None:
         if isinstance(encoder, str):
-            model = self.load_model_from_name("sonar_mutox", encoder, device=device)
+            self.model = self.load_model_from_name(
+                "sonar_mutox", encoder, device=device
+            )
         else:
-            model = encoder
+            self.model = encoder
 
-        super().__init__(model)
+        super().__init__(self.model)
 
         self.model.to(device).eval()
-        self.mutox_classifier = mutox_classifier.to(device).eval()
 
         if isinstance(mutox_classifier, str):
-            self.mutox_classifier = load_mutox_model(mutox_classifier, device=device,)
+            self.mutox_classifier = load_mutox_model(
+                mutox_classifier,
+                device=device,
+            )
         else:
             self.mutox_classifier = mutox_classifier
 
@@ -65,4 +69,7 @@ class MutoxSpeechClassifierPipeline(SpeechToEmbeddingPipeline):
 
     @torch.inference_mode()
     def _run_classifier(self, data: dict):
-        return self.mutox_classifier(data.sentence_embeddings)
+        sentence_embeddings = data.get("sentence_embeddings")
+        if sentence_embeddings is None:
+            raise ValueError("Missing sentence embeddings in the data.")
+        return self.mutox_classifier(sentence_embeddings)

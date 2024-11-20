@@ -40,7 +40,7 @@ class MutoxClassifierBuilder:
         self.config = config
         self.device, self.dtype = device, dtype
 
-    def build_model(self, activation=nn.ReLU) -> MutoxClassifier:
+    def build_model(self, activation=nn.ReLU()) -> MutoxClassifier:
         model_h1 = nn.Sequential(
             nn.Dropout(0.01),
             nn.Linear(self.config.input_size, 512),
@@ -51,15 +51,9 @@ class MutoxClassifierBuilder:
             nn.Linear(512, 128),
         )
 
-        if self.config.output_prob:
-            model_h3 = nn.Sequential(activation(), nn.Linear(128, 1), nn.Sigmoid())
-        else:
-            model_h3 = nn.Sequential(activation(), nn.Linear(128, 1))
-
         model_all = nn.Sequential(
             model_h1,
             model_h2,
-            model_h3,
         )
 
         return MutoxClassifier(

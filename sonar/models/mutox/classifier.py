@@ -21,7 +21,12 @@ class MutoxClassifier(nn.Module):
         super().__init__()
         self.model_all = model_all
 
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+    def forward(self, inputs: torch.Tensor, output_prob: bool = False) -> torch.Tensor:
+        if output_prob:
+            self.model_all.add_module("sigmoid", nn.Sigmoid())
+        else:
+            self.model_all.add_module("linear", nn.Linear(128, 1))
+
         return self.model_all(inputs)
 
 
@@ -31,9 +36,6 @@ class MutoxConfig:
 
     # size of the input embedding supported by this model
     input_size: int
-
-    # add sigmoid as last layer to output probability
-    output_prob: bool = False
 
 
 mutox_archs = ArchitectureRegistry[MutoxConfig]("mutox_classifier")
