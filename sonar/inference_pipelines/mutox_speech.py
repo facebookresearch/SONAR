@@ -39,6 +39,13 @@ class MutoxSpeechClassifierPipeline(SpeechToEmbeddingPipeline):
         self.model.to(device).eval()
         self.mutox_classifier = mutox_classifier.to(device).eval()
 
+        if isinstance(mutox_classifier, str):
+            self.mutox_classifier = load_mutox_model(mutox_classifier, device=device,)
+        else:
+            self.mutox_classifier = mutox_classifier
+
+        self.mutox_classifier.to(device).eval()
+
     @classmethod
     def load_model_from_name(
         cls,

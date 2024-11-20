@@ -144,7 +144,7 @@ Detailed model cards with more examples: [facebook/blaser-2.0-ref](https://huggi
 
 ### Classifying the toxicity of sentences with MuTox
 
-[MuTox](https://github.com/facebookresearch/seamless_communication/tree/main/src/seamless_communication/cli/toxicity/mutox), the first highly multilingual audio-based classifier (binary) and dataset with toxicity labels. The dataset consists of 20k audio utterances for English and Spanish, and 4k for the other 19 languages, and uses the multi-model and multilingual encoders from SONAR. The output of the MuTox classifier is a probability of the evaluated being _"toxic"_, according to the definition adopted in the corresponding dataset.
+[MuTox](https://github.com/facebookresearch/seamless_communication/tree/main/src/seamless_communication/cli/toxicity/mutox), the first highly multilingual audio-based classifier (binary) and dataset with toxicity labels. The dataset consists of 20k audio utterances for English and Spanish, and 4k for the other 19 languages, and uses the multi-model and multilingual encoders from SONAR. The output of the MuTox classifier is a logit of the evaluated being _"toxic"_, according to the definition adopted in the corresponding dataset.
 
 ```Python
 from sonar.models.mutox.loader import load_mutox_model
@@ -175,7 +175,7 @@ with torch.inference_mode():
     x = classifier(emb.to(device).to(dtype)) # tensor([[-19.7812]], device='cuda:0', dtype=torch.float16)
 
 with torch.inference_mode():
-    emb = t2vec_model.predict(["She worked hard and made a significant contribution to the team."], source_lang='fra_Latn')
+    emb = t2vec_model.predict(["She worked hard and made a significant contribution to the team."], source_lang='eng_Latn')
     x = classifier(emb.to(device).to(dtype)) # tensor([[-58.0625]], device='cuda:0', dtype=torch.float16)
 
 with torch.inference_mode():
