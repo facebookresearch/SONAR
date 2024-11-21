@@ -40,25 +40,29 @@ class MutoxClassifierBuilder:
         self.config = config
         self.device, self.dtype = device, dtype
 
-    def build_model(self, activation=nn.ReLU()) -> MutoxClassifier:
+    def build_model(self) -> MutoxClassifier:
         model_h1 = nn.Sequential(
             nn.Dropout(0.01),
             nn.Linear(self.config.input_size, 512),
         )
 
         model_h2 = nn.Sequential(
-            activation,
+            nn.ReLU(),
             nn.Linear(512, 128),
+        )
+
+        model_h3 = nn.Sequential(
+            nn.ReLU(),
+            nn.Linear(128, 1),
         )
 
         model_all = nn.Sequential(
             model_h1,
             model_h2,
+            model_h3,
         )
 
-        return MutoxClassifier(
-            model_all,
-        ).to(
+        return MutoxClassifier(model_all,).to(
             device=self.device,
             dtype=self.dtype,
         )

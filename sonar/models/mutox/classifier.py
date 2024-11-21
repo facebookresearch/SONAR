@@ -22,12 +22,13 @@ class MutoxClassifier(nn.Module):
         self.model_all = model_all
 
     def forward(self, inputs: torch.Tensor, output_prob: bool = False) -> torch.Tensor:
-        if output_prob:
-            self.model_all.add_module("sigmoid", nn.Sigmoid())
-        else:
-            self.model_all.add_module("linear", nn.Linear(128, 1))
+        outputs = self.model_all(inputs)
 
-        return self.model_all(inputs)
+        if output_prob:
+            outputs = torch.sigmoid(outputs)
+
+        return outputs
+
 
 
 @dataclass
