@@ -30,7 +30,6 @@ class MutoxClassifier(nn.Module):
         return outputs
 
 
-
 @dataclass
 class MutoxConfig:
     """Holds the configuration of a Mutox Classifier model."""

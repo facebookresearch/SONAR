@@ -72,6 +72,29 @@ def test_mutox_classifier_forward():
     ), f"Expected output shape (3, 1), but instead got {output.shape}"
 
 
+def test_mutox_classifier_forward_with_output_prob():
+    """Test that MutoxClassifier forward pass applies sigmoid when output_prob=True."""
+    test_model = nn.Sequential(
+        nn.Linear(10, 5),
+        nn.ReLU(),
+        nn.Linear(5, 1),
+    )
+    model = MutoxClassifier(test_model)
+
+    test_input = torch.randn(3, 10)
+
+    output = model(test_input, output_prob=True)
+
+    assert output.shape == (
+        3,
+        1,
+    ), f"Expected output shape (3, 1), but instead got {output.shape}"
+
+    assert (output >= 0).all() and (
+        output <= 1
+    ).all(), "Expected output values to be within the range [0, 1]"
+
+
 def test_mutox_config():
     """Test that MutoxConfig stores the configuration for a model."""
     config = MutoxConfig(input_size=512)
@@ -85,7 +108,6 @@ def test_mutox_config():
 
 def test_convert_mutox_checkpoint():
     """Test convert_mutox_checkpoint correctly filters keys in the checkpoint."""
-    # Create a mock checkpoint with both 'model_all.' prefixed keys and other keys
     checkpoint = {
         "model_all.layer1.weight": torch.tensor([1.0]),
         "model_all.layer1.bias": torch.tensor([0.5]),

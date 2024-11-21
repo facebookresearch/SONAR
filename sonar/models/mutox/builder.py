@@ -62,7 +62,9 @@ class MutoxClassifierBuilder:
             model_h3,
         )
 
-        return MutoxClassifier(model_all,).to(
+        return MutoxClassifier(
+            model_all,
+        ).to(
             device=self.device,
             dtype=self.dtype,
         )
