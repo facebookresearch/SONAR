@@ -11,9 +11,12 @@ from fairseq2.data import DataPipelineBuilder
 from fairseq2.typing import Device
 
 from sonar.inference_pipelines.speech import (
+    AudioToFbankDataPipelineBuilder,
     SpeechInferenceParams,
+    SpeechInferencePipeline,
     SpeechToEmbeddingPipeline,
 )
+from sonar.inference_pipelines.utils import extract_sequence_batch
 from sonar.models.encoder_model import SonarEncoderModel
 from sonar.models.mutox.classifier import MutoxClassifier
 from sonar.models.mutox.loader import load_mutox_model
@@ -22,7 +25,9 @@ from sonar.models.sonar_speech.loader import load_sonar_speech_model
 CPU_DEVICE = torch.device("cpu")
 
 
-class MutoxSpeechClassifierPipeline(SpeechToEmbeddingPipeline):
+class MutoxSpeechClassifierPipeline(SpeechInferencePipeline):
+    model: SonarEncoderModel
+
     def __init__(
         self,
         mutox_classifier: Union[str, MutoxClassifier],
@@ -36,7 +41,7 @@ class MutoxSpeechClassifierPipeline(SpeechToEmbeddingPipeline):
         else:
             self.model = encoder
 
-        super().__init__(self.model)
+        super().__init__()
 
         self.model.to(device).eval()
 
@@ -56,7 +61,7 @@ class MutoxSpeechClassifierPipeline(SpeechToEmbeddingPipeline):
         mutox_classifier_name: str,
         encoder_name: str,
         device: Device = CPU_DEVICE,
-    ) -> "SpeechToEmbeddingPipeline":
+    ) -> "MutoxSpeechClassifierPipeline":
         encoder = load_sonar_speech_model(encoder_name, device=device, progress=False)
         mutox_classifier = load_mutox_model(
             mutox_classifier_name, device=device, progress=False
@@ -64,8 +69,21 @@ class MutoxSpeechClassifierPipeline(SpeechToEmbeddingPipeline):
         return cls(mutox_classifier=mutox_classifier, encoder=encoder, device=device)
 
     def prebuild_pipeline(self, context: SpeechInferenceParams) -> DataPipelineBuilder:
-        pipeline_builder = super().prebuild_pipeline(context)
+        audio_to_fbank_dp_builder = AudioToFbankDataPipelineBuilder()
+        pipeline_builder = (
+            audio_to_fbank_dp_builder.prebuild_pipeline(context)
+            .map(
+                lambda fbank: extract_sequence_batch(fbank, context.device),
+                selector="audio.data.fbank",
+            )
+            .map(self.run_inference, selector="audio.data")
+        )
         return pipeline_builder.map(self._run_classifier, selector="audio.data")
+
+    @torch.inference_mode()
+    def run_inference(self, fbank: torch.Tensor) -> dict:
+        """Runs the encoder model on the extracted FBANK features."""
+        return {"sentence_embeddings": self.model(fbank)}
 
     @torch.inference_mode()
     def _run_classifier(self, data: dict):

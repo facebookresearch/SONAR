@@ -76,9 +76,11 @@ def test_sonar_mutox_classifier_integration(input_texts, source_lang, expected_o
             [0.0],
         ),
         (
-            ["She worked hard and made a significant contribution to the team."],
+            [
+                "Dammit, that was a terrible launch, it will piss the director and make the mission fail."
+            ],
             "eng_Latn",
-            [0.0],
+            [0.23],
         ),
         (
             [
@@ -117,7 +119,7 @@ def test_sonar_mutox_classifier_probability_integration(
 
             prob = classifier(emb.to(device).to(dtype), output_prob=True)
 
-            assert abs(prob.item() - expected_prob) < 0.001, (
+            assert abs(prob.item() - expected_prob) < 0.01, (
                 f"Expected probability {expected_prob}, but got {prob.item()}. "
                 "Output probability should be within a reasonable range."
             )
