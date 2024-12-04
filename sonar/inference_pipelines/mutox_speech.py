@@ -37,7 +37,7 @@ class MutoxSpeechClassifierPipeline(SpeechInferencePipeline):
         if isinstance(encoder, str):
             self.model = self.load_model_from_name(
                 "sonar_mutox", encoder, device=device
-            )
+            )  # type: ignore
         else:
             self.model = encoder
 
