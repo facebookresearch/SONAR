@@ -52,7 +52,7 @@ def test_embedding_to_text_process_batch(embedding_to_text_config):
     embedding_dim = 1024
     num_embeddings = 4
 
-    embeddings = [
+    embeddings: List[np.ndarray] = [
         np.random.rand(embedding_dim).astype(np.float32) for _ in range(num_embeddings)
     ]
 

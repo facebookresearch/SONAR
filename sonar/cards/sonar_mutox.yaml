@@ -1,0 +1,16 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
+#This card is a duplicate of the original found at
+#[Facebook Research's Seamless Communication repository]
+#(https://github.com/facebookresearch/seamless_communication/blob/main/src/seamless_communication/cards/mutox.yaml).
+#It is included here to prevent circular dependencies between the Seamless Communication
+
+name: sonar_mutox
+model_type: mutox_classifier
+model_arch: mutox
+checkpoint: "https://dl.fbaipublicfiles.com/seamless/models/mutox.pt"
+input_size: 1024

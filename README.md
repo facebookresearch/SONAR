@@ -142,6 +142,49 @@ print(blaser_qe(src=src_embs, mt=mt_embs).item())  # 4.708
 Detailed model cards with more examples: [facebook/blaser-2.0-ref](https://huggingface.co/facebook/blaser-2.0-ref), 
 [facebook/blaser-2.0-qe](https://huggingface.co/facebook/blaser-2.0-qe). 
 
+### Classifying the toxicity of sentences with MuTox
+
+[MuTox](https://github.com/facebookresearch/seamless_communication/tree/main/src/seamless_communication/cli/toxicity/mutox), the first highly multilingual audio-based classifier (binary) and dataset with toxicity labels. The dataset consists of 20k audio utterances for English and Spanish, and 4k for the other 19 languages, and uses the multi-model and multilingual encoders from SONAR. The output of the MuTox classifier is a logit of the evaluated being _"toxic"_, according to the definition adopted in the corresponding dataset.
+
+```Python
+from sonar.models.mutox.loader import load_mutox_model
+from sonar.inference_pipelines.text import TextToEmbeddingModelPipeline
+import torch
+
+if torch.cuda.is_available():
+    device = torch.device("cuda:0")
+    dtype = torch.float16
+else:
+    device = torch.device("cpu")
+    dtype = torch.float32
+
+t2vec_model = TextToEmbeddingModelPipeline(
+    encoder="text_sonar_basic_encoder",
+    tokenizer="text_sonar_basic_encoder",
+    device=device,
+)
+text_column='lang_txt'
+classifier = load_mutox_model(
+    "sonar_mutox",
+    device=device,
+    dtype=dtype,
+).eval()
+
+with torch.inference_mode():
+    emb = t2vec_model.predict(["De peur que le pays ne se prostitue et ne se remplisse de crimes."], source_lang='fra_Latn')
+    x = classifier(emb.to(device).to(dtype)) # tensor([[-19.7812]], device='cuda:0', dtype=torch.float16)
+
+with torch.inference_mode():
+    emb = t2vec_model.predict(["She worked hard and made a significant contribution to the team."], source_lang='eng_Latn')
+    x = classifier(emb.to(device).to(dtype)) # tensor([[-53.5938]], device='cuda:0', dtype=torch.float16)
+
+with torch.inference_mode():
+    emb = t2vec_model.predict(["El no tiene ni el más mínimo talento, todo lo que ha logrado ha sido gracias a sobornos y manipulaciones."], source_lang='spa_Latn')
+    x = classifier(emb.to(device).to(dtype)) # tensor([[-21.4062]], device='cuda:0', dtype=torch.float16)
+```
+
+For a CLI way of running the MuTox pipeline, go to [Seamless Communication/.../MuTox](https://github.com/facebookresearch/seamless_communication/tree/main/src/seamless_communication/cli/toxicity/mutox).
+
 ### Demo notebooks
 See more complete demo notebooks :
 
