@@ -7,8 +7,6 @@
 """SONAR provides a set of speech and text encoders for multilingual, multimodal semantic embedding.
 
 """
-
-from fairseq2 import setup_extensions
 from fairseq2.assets import default_asset_store
 
 __version__ = "0.2.1"
@@ -19,4 +17,4 @@ def setup_fairseq2() -> None:
     # the directory <sonar>/cards.
     default_asset_store.add_package_metadata_provider("sonar.cards")
 
-setup_extensions()
+setup_fairseq2()
