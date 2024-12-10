@@ -28,7 +28,9 @@ jobs:
         run: |
           sudo apt-get install libsndfile1
           python -m pip install --upgrade pip
-          pip install --pre --extra-index-url https://fair.pkg.atmeta.com/fairseq2/whl/nightly/pt2.2.0/cu121 -r requirements.txt
+          pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2n/fairseq2n-0.3.0+cpu-cp310-cp310-manylinux_2_28_x86_64.whl
+          pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2/fairseq2-0.3.0-py3-none-any.whl
+          pip install -r requirements.txt
           pip install -r requirements-dev.txt
           pip install -e .
       - name: Lint with flake8
