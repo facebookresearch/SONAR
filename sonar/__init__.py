@@ -9,12 +9,13 @@
 """
 from fairseq2.assets import default_asset_store
 
-__version__ = "0.2.1"
+__version__ = "0.3.1"
 
 
 def setup_fairseq2() -> None:
     # Make sure that the default fairseq2 asset store can resolve cards under
     # the directory <sonar>/cards.
     default_asset_store.add_package_metadata_provider("sonar.cards")
+
 
 setup_fairseq2()

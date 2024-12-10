@@ -32,7 +32,9 @@ def convert_mutox_checkpoint(
     return {"model": new_dict}
 
 
-load_mutox_config = StandardModelConfigLoader(family="mutox", config_kls=MutoxConfig, arch_configs=mutox_archs)
+load_mutox_config = StandardModelConfigLoader(
+    family="mutox", config_kls=MutoxConfig, arch_configs=mutox_archs
+)
 
 load_mutox_model = StandardModelLoader(
     config_loader=load_mutox_config,
