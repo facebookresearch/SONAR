@@ -19,7 +19,4 @@ def setup_fairseq2() -> None:
     # the directory <sonar>/cards.
     default_asset_store.add_package_metadata_provider("sonar.cards")
 
-
-# This call activates setup_fairseq2 and potentially other extensions,
-# such as fairseq2_ext (which provides env resolvers for the faircluster, rsccluster etc)
 setup_extensions()
