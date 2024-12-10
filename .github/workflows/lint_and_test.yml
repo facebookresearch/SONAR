@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10"]
+        python-version: ["3.8"]
 
     steps:
       - uses: actions/checkout@v3
@@ -28,7 +28,7 @@ jobs:
         run: |
           sudo apt-get install libsndfile1
           python -m pip install --upgrade pip
-          pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2n/fairseq2n-0.3.0+cpu-cp310-cp310-manylinux_2_28_x86_64.whl
+          pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2n/fairseq2n-0.3.0+cpu-cp38-cp38-manylinux_2_28_x86_64.whl
           pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2/fairseq2-0.3.0-py3-none-any.whl
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
@@ -61,7 +61,7 @@ jobs:
         run: |
           sudo apt-get install libsndfile1
           python -m pip install --upgrade pip
-          pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2n/fairseq2n-0.3.0+cpu-cp310-cp310-manylinux_2_28_x86_64.whl
+          pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2n/fairseq2n-0.3.0+cpu-cp38-cp38-manylinux_2_28_x86_64.whl
           pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2/fairseq2-0.3.0-py3-none-any.whl
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
@@ -86,7 +86,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get install libsndfile1
-          pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2n/fairseq2n-0.3.0+cpu-cp310-cp310-manylinux_2_28_x86_64.whl
+          pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2n/fairseq2n-0.3.0+cpu-cp38-cp38-manylinux_2_28_x86_64.whl
           pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2/fairseq2-0.3.0-py3-none-any.whl
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
@@ -112,7 +112,7 @@ jobs:
         run: |
           sudo apt-get install libsndfile1
           python -m pip install --upgrade pip
-          pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2n/fairseq2n-0.3.0+cpu-cp310-cp310-manylinux_2_28_x86_64.whl
+          pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2n/fairseq2n-0.3.0+cpu-cp38-cp38-manylinux_2_28_x86_64.whl
           pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2/fairseq2-0.3.0-py3-none-any.whl
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
