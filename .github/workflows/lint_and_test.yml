@@ -28,8 +28,7 @@ jobs:
         run: |
           sudo apt-get install libsndfile1
           python -m pip install --upgrade pip
-          pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2n/fairseq2n-0.3.0+cpu-cp38-cp38-manylinux_2_28_x86_64.whl
-          pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2/fairseq2-0.3.0-py3-none-any.whl
+          pip install fairseq2==v0.3.0rc1 --pre --extra-index-url  https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
           pip install -e .
@@ -61,8 +60,7 @@ jobs:
         run: |
           sudo apt-get install libsndfile1
           python -m pip install --upgrade pip
-          pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2n/fairseq2n-0.3.0+cpu-cp38-cp38-manylinux_2_28_x86_64.whl
-          pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2/fairseq2-0.3.0-py3-none-any.whl
+          pip install fairseq2==v0.3.0rc1 --pre --extra-index-url  https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
           pip install -e .
@@ -86,8 +84,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get install libsndfile1
-          pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2n/fairseq2n-0.3.0+cpu-cp38-cp38-manylinux_2_28_x86_64.whl
-          pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2/fairseq2-0.3.0-py3-none-any.whl
+          pip install fairseq2==v0.3.0rc1 --pre --extra-index-url  https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
           pip install -e .
@@ -112,8 +109,7 @@ jobs:
         run: |
           sudo apt-get install libsndfile1
           python -m pip install --upgrade pip
-          pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2n/fairseq2n-0.3.0+cpu-cp38-cp38-manylinux_2_28_x86_64.whl
-          pip install https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/fairseq2/fairseq2-0.3.0-py3-none-any.whl
+          pip install fairseq2==v0.3.0rc1 --pre --extra-index-url  https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
           pip install -e .
