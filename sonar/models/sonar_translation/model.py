@@ -8,11 +8,11 @@ from typing import Optional, Tuple, final
 
 from fairseq2.models.encoder_decoder import EncoderDecoderModel
 from fairseq2.models.sequence import SequenceBatch, SequenceModelOutput
-from fairseq2.models.transformer import TransformerDecoderModel
 from fairseq2.nn.padding import PaddingMask
 from torch import Tensor
 
 from sonar.models.encoder_model import SonarEncoderModel, SonarEncoderOutput
+from sonar.nn.conditional_decoder_model import ConditionalTransformerDecoderModel
 
 
 @final
@@ -24,14 +24,16 @@ class SonarEncoderDecoderModel(EncoderDecoderModel):
     """
 
     encoder: SonarEncoderModel
-    decoder: TransformerDecoderModel
+    decoder: ConditionalTransformerDecoderModel
 
     def __init__(
         self,
         encoder: SonarEncoderModel,
-        decoder: TransformerDecoderModel,
+        decoder: ConditionalTransformerDecoderModel,
     ) -> None:
-        super().__init__(encoder.model_dim, decoder.vocab_info)
+        super().__init__(
+            encoder.model_dim, decoder.max_target_seq_len, decoder.target_vocab_info
+        )
         if encoder.model_dim != decoder.model_dim:
             raise ValueError(
                 f"`model_dim` of `encoder` and `model_dim` of `decoder` must be equal, but are {encoder.model_dim} and {decoder.model_dim} instead."

@@ -7,7 +7,7 @@
 from dataclasses import asdict, dataclass, field
 from typing import List, Optional
 
-from fairseq2.models.utils.arch_registry import ArchitectureRegistry
+from fairseq2.config_registry import ConfigRegistry
 from fairseq2.typing import DataType, Device
 
 from sonar.models.blaser.model import ACTIVATIONS, BLASER_INPUT_FORMS, BlaserModel
@@ -38,7 +38,7 @@ class BlaserConfig:
             )
 
 
-blaser_archs = ArchitectureRegistry[BlaserConfig]("blaser")
+blaser_archs = ConfigRegistry[BlaserConfig]()
 
 blaser_arch = blaser_archs.decorator
 

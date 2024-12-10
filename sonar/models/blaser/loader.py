@@ -4,18 +4,17 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Mapping
+from typing import Any, Dict
 
-from fairseq2.assets import asset_store, download_manager
-from fairseq2.models.utils import ConfigLoader, ModelLoader
+from fairseq2.models.config_loader import StandardModelConfigLoader
+from fairseq2.models.loader import StandardModelLoader, load_model
 
 from sonar.models.blaser.builder import BlaserConfig, blaser_archs, create_blaser_model
-from sonar.models.blaser.model import BlaserModel
 
 
 def convert_blaser_checkpoint(
-    checkpoint: Mapping[str, Any], config: BlaserConfig
-) -> Mapping[str, Any]:
+    checkpoint: Dict[str, Any], config: BlaserConfig
+) -> Dict[str, Any]:
     # Return directly if found fairseq2 attribute in state dict
     if "model" in checkpoint.keys():
         return checkpoint
@@ -23,13 +22,15 @@ def convert_blaser_checkpoint(
     return {"model": checkpoint}
 
 
-load_blaser_config = ConfigLoader[BlaserConfig](asset_store, blaser_archs)
+load_blaser_config = StandardModelConfigLoader(
+    family="blaser", config_kls=BlaserConfig, arch_configs=blaser_archs
+)
 
-load_blaser_model = ModelLoader[BlaserModel, BlaserConfig](
-    asset_store,
-    download_manager,
-    load_blaser_config,
-    create_blaser_model,
-    convert_blaser_checkpoint,
+load_blaser_model = StandardModelLoader(
+    config_loader=load_blaser_config,
+    factory=create_blaser_model,
+    checkpoint_converter=convert_blaser_checkpoint,
     restrict_checkpoints=False,
 )
+
+load_model.register("blaser", load_blaser_model)

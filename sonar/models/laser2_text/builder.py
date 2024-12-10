@@ -7,7 +7,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from fairseq2.models.utils.arch_registry import ArchitectureRegistry
+from fairseq2.config_registry import ConfigRegistry
 from fairseq2.typing import DataType, Device
 
 from sonar.nn.laser_lstm_encoder import LaserLstmEncoder
@@ -26,7 +26,7 @@ class Laser2Config:
     padding_value: float = 0.0
 
 
-laser2_archs = ArchitectureRegistry[Laser2Config]("lstm")
+laser2_archs = ConfigRegistry[Laser2Config]()
 
 laser2_arch = laser2_archs.decorator
 

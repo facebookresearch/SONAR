@@ -4,10 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Mapping
+from typing import Any, Dict
 
-from fairseq2.assets import asset_store, download_manager
-from fairseq2.models.utils import ConfigLoader, ModelLoader
+from fairseq2.models.config_loader import StandardModelConfigLoader
+from fairseq2.models.loader import StandardModelLoader, load_model
 from fairseq2.models.utils.checkpoint import convert_fairseq_checkpoint
 
 from sonar.models.sonar_speech.builder import (
@@ -15,12 +15,11 @@ from sonar.models.sonar_speech.builder import (
     create_sonar_speech_encoder_model,
     sonar_speech_archs,
 )
-from sonar.models.sonar_speech.model import SonarSpeechEncoderModel
 
 
 def convert_sonar_speech_checkpoint(
-    checkpoint: Mapping[str, Any], config: SonarSpeechEncoderConfig
-) -> Mapping[str, Any]:
+    checkpoint: Dict[str, Any], config: SonarSpeechEncoderConfig
+) -> Dict[str, Any]:
     state_dict = checkpoint["model"]
 
     # Check if we have a fairseq2 checkpoint.
@@ -30,12 +29,16 @@ def convert_sonar_speech_checkpoint(
     if "encoder.w2v_model.mask_emb" in state_dict:
         del state_dict["encoder.w2v_model.mask_emb"]
 
+    if "encoder.w2v_model.encoder.pos_conv.0.bias" in state_dict:
+        del state_dict["encoder.w2v_model.encoder.pos_conv.0.bias"]
+        del state_dict["encoder.w2v_model.encoder.pos_conv.0.weight_g"]
+        del state_dict["encoder.w2v_model.encoder.pos_conv.0.weight_v"]
+
     key_map = {
         # fmt: off
         # encoder
         r"^encoder.w2v_model.layer_norm\.":                                              r"encoder_frontend.post_extract_layer_norm.",
         r"^encoder.w2v_model.post_extract_proj\.":                                       r"encoder_frontend.model_dim_proj.",
-        r"^encoder.w2v_model.encoder\.pos_conv\.0\.":                                    r"encoder_frontend.pos_encoder.conv.",
         r"^encoder.w2v_model.encoder\.layers\.([0-9]+)\.conv_module\.batch_norm\.":      r"encoder.layers.\1.conv.batch_norm.",
         r"^encoder.w2v_model.encoder\.layers\.([0-9]+)\.conv_module\.depthwise_conv\.":  r"encoder.layers.\1.conv.depthwise_conv.",
         r"^encoder.w2v_model.encoder\.layers\.([0-9]+)\.conv_module\.layer_norm\.":      r"encoder.layers.\1.conv_layer_norm.",
@@ -81,16 +84,16 @@ def convert_sonar_speech_checkpoint(
     return convert_fairseq_checkpoint(checkpoint, key_map)
 
 
-load_sonar_speech_config = ConfigLoader[SonarSpeechEncoderConfig](
-    asset_store, sonar_speech_archs
+load_sonar_speech_config = StandardModelConfigLoader(
+    family="sonar_speech",
+    config_kls=SonarSpeechEncoderConfig,
+    arch_configs=sonar_speech_archs,
 )
 
-load_sonar_speech_model = ModelLoader[
-    SonarSpeechEncoderModel, SonarSpeechEncoderConfig
-](
-    asset_store,
-    download_manager,
-    load_sonar_speech_config,
-    create_sonar_speech_encoder_model,
-    convert_sonar_speech_checkpoint,
+load_sonar_speech_model = StandardModelLoader(
+    config_loader=load_sonar_speech_config,
+    factory=create_sonar_speech_encoder_model,
+    checkpoint_converter=convert_sonar_speech_checkpoint,
 )
+
+load_model.register("sonar_speech", load_sonar_speech_model)

@@ -31,8 +31,8 @@ classifiers = [
 ]
 
 dependencies = [
+  "fairseq2>=0.3.0",
   "numpy>=1.21",
-  "fairseq2>=0.2.1",
   "torch",
   "torchaudio",
   "sox",
@@ -71,6 +71,9 @@ hg = [
 [project.urls]
 Source = "https://github.com/facebookresearch/SONAR"
 Tracker = "https://github.com/facebookresearch/SONAR/issues"
+
+[project.entry-points."fairseq2"]
+"fairseq2" = "sonar:setup_fairseq2"
 
 [tool.flit.module]
 name = "sonar"

@@ -8,19 +8,18 @@
 
 """
 
-from pathlib import Path
-
-from fairseq2.assets import FileAssetMetadataProvider, asset_store
+from fairseq2 import setup_extensions
+from fairseq2.assets import default_asset_store
 
 __version__ = "0.2.1"
 
 
-def _update_asset_store() -> None:
-    cards_dir = Path(__file__).parent.joinpath("cards")
-
+def setup_fairseq2() -> None:
     # Make sure that the default fairseq2 asset store can resolve cards under
     # the directory <sonar>/cards.
-    asset_store.metadata_providers.append(FileAssetMetadataProvider(cards_dir))
+    default_asset_store.add_package_metadata_provider("sonar.cards")
 
 
-_update_asset_store()
+# This call activates setup_fairseq2 and potentially other extensions,
+# such as fairseq2_ext (which provides env resolvers for the faircluster, rsccluster etc)
+setup_extensions()
