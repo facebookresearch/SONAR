@@ -31,7 +31,7 @@ classifiers = [
 ]
 
 dependencies = [
-  "fairseq2>=0.3.0",
+  "fairseq2>=0.3.0rc1",
   "numpy>=1.21",
   "torch",
   "torchaudio",
