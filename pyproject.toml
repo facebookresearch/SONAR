@@ -30,7 +30,7 @@ classifiers = [
 ]
 
 dependencies = [
-  "fairseq2>=0.3.0rc1",
+#   "fairseq2>=0.3.0rc1", # installed with the cpu deps, if you want a gpu build, you need to install it manually
   "numpy>=1.21",
   "sox",
   "soundfile",
@@ -46,7 +46,7 @@ dev = ["pytest-asyncio>=0.15.0", "pytest-cov>=2.6.1", "pytest>=4.3.0", "coverage
 [project.optional-dependencies]
 cpu = [
   "torch==2.5.1+cpu",
-  "torchaudio",
+  "torchaudio==2.5.1+cpu",
   "fairseq2n==0.3.0rc1", 
   "fairseq2[arrow]==0.3.0rc1", 
 ]
@@ -97,6 +97,7 @@ fairseq2n = [
   { index = "fairseq2-cpu", extra = 'cpu' }
 ]
 torch={index="pytorch-cpu"}
+torchaudio={index="pytorch-cpu"}
 
 [[tool.uv.index]]
 name = "fairseq2-cpu"
