@@ -16,12 +16,9 @@ from tqdm.auto import tqdm
 
 
 def extract_sequence_batch(x: SequenceData, device: Device) -> SequenceBatch:
-    seqs, padding_mask = get_seqs_and_padding_mask(x)
+    seqs, padding_mask = get_seqs_and_padding_mask(x, device=device)
 
-    if padding_mask is not None:
-        padding_mask = padding_mask.to(device)
-
-    return SequenceBatch(seqs.to(device), padding_mask)
+    return SequenceBatch(seqs, padding_mask)
 
 
 def add_progress_bar(

@@ -1,0 +1,11 @@
+runs:
+  using: composite
+  steps:
+    - name: "Install UV"
+      shell: bash
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    - name: "Install libsndfile"
+      shell: bash
+      run: |
+        sudo apt-get install libsndfile1 python3-distutils

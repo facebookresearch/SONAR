@@ -14,7 +14,6 @@ from sonar.inference_pipelines.speech import (
     AudioToFbankDataPipelineBuilder,
     SpeechInferenceParams,
     SpeechInferencePipeline,
-    SpeechToEmbeddingPipeline,
 )
 from sonar.inference_pipelines.utils import extract_sequence_batch
 from sonar.models.encoder_model import SonarEncoderModel

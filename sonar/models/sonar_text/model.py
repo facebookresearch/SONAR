@@ -13,16 +13,18 @@ from fairseq2.models.transformer.frontend import TransformerFrontend
 from fairseq2.nn.normalization import LayerNorm
 from fairseq2.nn.padding import PaddingMask, apply_padding_mask
 from fairseq2.nn.transformer import TransformerEncoder
-from overrides import final as finaloverride
+from fairseq2.typing import override
 from torch import Tensor
 
 from sonar.models.encoder_model import SonarEncoderModel, SonarEncoderOutput
+from sonar.nn.encoder_pooler import EncoderOutputPooler
 
 
 class Pooling(Enum):
     MAX = 1
     MEAN = 2
     LAST = 3
+    ATTENTION = 4
 
 
 @final
@@ -36,6 +38,7 @@ class SonarTextTransformerEncoderModel(SonarEncoderModel):
         encoder: TransformerEncoder,
         layer_norm: Optional[LayerNorm] = None,
         pooling: Pooling = Pooling.LAST,
+        pooler: Optional[EncoderOutputPooler] = None,
     ) -> None:
         """
         :param encoder_frontend:
@@ -61,12 +64,31 @@ class SonarTextTransformerEncoderModel(SonarEncoderModel):
         self.encoder = encoder
         self.layer_norm = layer_norm
         self.pooling = pooling
+        self.pooler = pooler
+
+    def pool(
+        self, seqs: Tensor, padding_mask: Optional[PaddingMask], pooling: Pooling
+    ) -> Tensor:
+        """Apply determininstic or trainable pooling"""
+        if pooling == Pooling.ATTENTION:
+            assert (
+                self.pooler is not None
+            ), "Cannot use trainable pooling without a pooler in the model"
+            sentence_embedding = self.pooler(
+                encoder_output=seqs, encoder_padding_mask=padding_mask
+            )
+        else:
+            sentence_embedding = self.static_pooling(
+                seqs=seqs, padding_mask=padding_mask, pooling=pooling
+            )
+        return sentence_embedding
 
     @staticmethod
-    def sentence_embedding_pooling(
+    def static_pooling(
         seqs: Tensor, padding_mask: Optional[PaddingMask], pooling: Pooling
     ) -> Tensor:
-        """Deterministic pooling along sequence dimension to get a sentence representation
+        """Deterministic pooling along sequence dimension to get a sentence representation.
+        In the future, some SONAR text encoders may have a trainable pooler instead.
         Args:
             seqs (Tensor): bs x seq_len x model_dim (of float dtype)
             padding_mask (Tensor): bs x seq_len  (containing 0 and -inf)
@@ -94,7 +116,9 @@ class SonarTextTransformerEncoderModel(SonarEncoderModel):
                 weights = 1.0 / (seqs.size(1) + 1e-7)
                 sentence_embedding = sentence_embedding * weights
             else:
-                weights = 1.0 / (padding_mask.seq_lens.float() + 1e-7)
+                weights = 1.0 / (
+                    padding_mask.seq_lens.to(sentence_embedding.dtype) + 1e-7
+                )
                 sentence_embedding = torch.einsum(
                     "i...,i->i...", sentence_embedding, weights
                 )
@@ -103,7 +127,7 @@ class SonarTextTransformerEncoderModel(SonarEncoderModel):
 
         return sentence_embedding
 
-    @finaloverride
+    @override
     def forward(self, batch: SequenceBatch) -> SonarEncoderOutput:
         embed_seqs, padding_mask = self.encoder_frontend(batch.seqs, batch.padding_mask)
 
@@ -111,9 +135,7 @@ class SonarTextTransformerEncoderModel(SonarEncoderModel):
 
         if self.layer_norm is not None:
             encoded_seqs = self.layer_norm(encoded_seqs)
-        sentence_embeddings = self.sentence_embedding_pooling(
-            encoded_seqs, padding_mask, self.pooling
-        )
+        sentence_embeddings = self.pool(encoded_seqs, padding_mask, self.pooling)
         return SonarEncoderOutput(
             encoded_seqs=encoded_seqs,
             sentence_embeddings=sentence_embeddings,

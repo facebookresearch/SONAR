@@ -7,11 +7,11 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from fairseq2.config_registry import ConfigRegistry
 from fairseq2.models.transformer.frontend import (
     TransformerEmbeddingFrontend,
     TransformerFrontend,
 )
-from fairseq2.models.utils.arch_registry import ArchitectureRegistry
 from fairseq2.models.w2vbert import w2vbert_archs
 from fairseq2.models.wav2vec2 import Wav2Vec2EncoderBuilder, Wav2Vec2EncoderConfig
 from fairseq2.nn import Linear
@@ -78,14 +78,14 @@ class SonarSpeechEncoderConfig:
     """The dropout probability in Transformer layers."""
 
 
-sonar_speech_archs = ArchitectureRegistry[SonarSpeechEncoderConfig]("sonar_speech")
+sonar_speech_archs = ConfigRegistry[SonarSpeechEncoderConfig]()
 
 sonar_speech_arch = sonar_speech_archs.decorator
 
 
 @sonar_speech_arch("english")
 def _basic() -> SonarSpeechEncoderConfig:
-    w2vbert_config = w2vbert_archs.get_config("600m")
+    w2vbert_config = w2vbert_archs.get("600m")
 
     return SonarSpeechEncoderConfig(
         w2v2_encoder_config=w2vbert_config.w2v2_config.encoder_config,
@@ -104,7 +104,7 @@ def _basic() -> SonarSpeechEncoderConfig:
 
 @sonar_speech_arch("non_english")
 def _multilingual() -> SonarSpeechEncoderConfig:
-    w2vbert_config = w2vbert_archs.get_config("600m")
+    w2vbert_config = w2vbert_archs.get("600m")
 
     return SonarSpeechEncoderConfig(
         w2v2_encoder_config=w2vbert_config.w2v2_config.encoder_config,
@@ -152,9 +152,9 @@ class SonarSpeechEncoderBuilder:
         :param dtype:
             The data type of module parameters and buffers.
         """
-        if w2v2_encoder_builder.config.model_dim != config.model_dim:
+        if config.w2v2_encoder_config.model_dim != config.model_dim:
             raise ValueError(
-                f"`model_dim` and `model_dim` of `w2v2_encoder_builder.config` must be equal, but are {config.model_dim} and {w2v2_encoder_builder.config.model_dim} instead."
+                f"`config.model_dim` and `config.w2v2_encoder_config.model_dim` must be equal, but are {config.model_dim} and {config.w2v2_encoder_config.model_dim} instead."
             )
 
         self.config = config

@@ -477,7 +477,6 @@ class HFTextToEmbeddingPipeline(Pipeline):
         """
         for column in self.config.columns:
             if column in batch:
-
                 if not isinstance(batch[column], (list, np.ndarray)):
                     raise ValueError(
                         f"Expected list for column {column}, got {type(batch[column])}"

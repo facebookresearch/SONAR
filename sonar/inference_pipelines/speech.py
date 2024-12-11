@@ -11,20 +11,13 @@ from pathlib import Path
 from typing import Iterable, List, Optional, Sequence, Union, cast
 
 import torch
-from fairseq2.data import (
-    Collater,
-    DataPipeline,
-    DataPipelineBuilder,
-    FileMapper,
-    StringLike,
-)
+from fairseq2.data import Collater, DataPipeline, DataPipelineBuilder, FileMapper
 from fairseq2.data.audio import AudioDecoder, WaveformToFbankConverter
 from fairseq2.data.data_pipeline import read_sequence
+from fairseq2.data.memory import MemoryBlock
 from fairseq2.data.text import StrSplitter, TextTokenizer, read_text
 from fairseq2.generation import BeamSearchSeq2SeqGenerator, SequenceToTextConverter
-from fairseq2.memory import MemoryBlock
 from fairseq2.models.sequence import SequenceBatch
-from fairseq2.models.transformer import TransformerDecoderModel
 from fairseq2.typing import DataType, Device
 
 from sonar.inference_pipelines.utils import add_progress_bar, extract_sequence_batch
@@ -33,6 +26,7 @@ from sonar.models.sonar_speech.loader import load_sonar_speech_model
 from sonar.models.sonar_speech.model import SonarSpeechEncoderModel
 from sonar.models.sonar_text import load_sonar_text_decoder_model, load_sonar_tokenizer
 from sonar.models.sonar_translation.model import SonarEncoderDecoderModel
+from sonar.nn.conditional_decoder_model import ConditionalTransformerDecoderModel
 
 CPU_DEVICE = torch.device("cpu")
 
@@ -100,9 +94,7 @@ class AudioToFbankDataPipelineBuilder(SpeechInferencePipeline):
         # Start building the pipeline
         pipeline_builder = (
             # Open TSV, skip the header line, split into fields, and return audio field
-            read_text(context.data_file, rtrim=True)
-            .skip(1)
-            .map(split_tsv)
+            read_text(context.data_file, rtrim=True).skip(1).map(split_tsv)
         )
 
         # Memory map audio files and cache up to 10 files.
@@ -256,7 +248,7 @@ class SpeechToTextPipeline(SpeechInferencePipeline):
             target_lang=context.target_lang,
         )
 
-        def _do_generate(data: dict) -> List[StringLike]:
+        def _do_generate(data: dict) -> List[str]:
             batch = cast(SequenceBatch, data["fbank"])
             texts, _ = converter.batch_convert(batch.seqs, batch.padding_mask)
             return texts
@@ -311,7 +303,7 @@ class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
     def __init__(
         self,
         encoder: Union[str, SonarEncoderModel],
-        decoder: Union[str, TransformerDecoderModel],
+        decoder: Union[str, ConditionalTransformerDecoderModel],
         tokenizer: Union[str, TextTokenizer],
         device: Device = CPU_DEVICE,
         fbank_dtype: DataType = torch.float32,
@@ -319,7 +311,7 @@ class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
         """
         Args:
             encoder (Union[str, SonarEncoderModel]): either cart name or model object
-            decoder (Union[str, TransformerDecoderModel]): either cart name or model object
+            decoder (Union[str, ConditionalTransformerDecoderModel]): either cart name or model object
             tokenizer (Union[str, TextTokenizer]): either cart name or tokenizer object
             device (device, optional): . Defaults to CPU_DEVICE.
             fbank_dtype (DataType, optional):. Defaults to torch.float32.
@@ -336,7 +328,7 @@ class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
             tokenizer = load_sonar_tokenizer(tokenizer, progress=False)
 
         self.tokenizer = tokenizer
-        self.model = SonarEncoderDecoderModel(encoder, decoder).to(device).eval()
+        self.model = SonarEncoderDecoderModel(encoder, decoder).to(device).eval()  # type: ignore
 
         # Only quantize the model in CUDA to bypass the error "LayerNormKernelImpl" not implemented for 'Half'
         # in some CUDAs and torch versions
@@ -365,7 +357,7 @@ class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
             target_lang=target_lang,
         )
 
-        def _do_generate(data: dict) -> List[StringLike]:
+        def _do_generate(data: dict) -> List[str]:
             batch = cast(SequenceBatch, data["fbank"])
             texts, _ = converter.batch_convert(batch.seqs, batch.padding_mask)
             return texts
@@ -390,8 +382,8 @@ class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
         if progress_bar:
             pipeline = add_progress_bar(pipeline, inputs=input, batch_size=batch_size)
 
-        results: List[List[StringLike]] = list(iter(pipeline))
-        return [str(x) for y in results for x in y]
+        results: List[List[str]] = list(iter(pipeline))
+        return [x for y in results for x in y]
 
 
 class SpeechToEmbeddingModelPipeline(SpeechModelPipelineInterface):
@@ -415,7 +407,7 @@ class SpeechToEmbeddingModelPipeline(SpeechModelPipelineInterface):
 
         if isinstance(encoder, str):
             encoder = load_sonar_speech_model(encoder, device=device, progress=False)
-        self.model = encoder.to(device).eval()
+        self.model = encoder.to(device).eval()  # type: ignore
 
         # Only quantize the model in CUDA to bypass the error "LayerNormKernelImpl" not implemented for 'Half'
         # in some CUDAs and torch versions

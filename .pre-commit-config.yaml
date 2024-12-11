@@ -1,0 +1,16 @@
+repos:
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.5.7
+    hooks:
+      - id: uv-lock
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.2
+    hooks:
+      # Lint
+      - id: ruff
+        args: [ --fix ]
+      # sort imports
+      - id: ruff
+        args: ["check", "--select", "I", "--fix"]
+      # format
+      - id: ruff-format

@@ -6,7 +6,6 @@
 
 import typing as tp
 
-import torch
 from fairseq2.typing import DataType, Device
 from torch import nn
 

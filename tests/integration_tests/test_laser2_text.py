@@ -4,10 +4,9 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 import tempfile
+from pathlib import Path
 
-import pytest
 import torch
 from fairseq2.data import Collater, text
 from torch.testing import assert_close
@@ -35,7 +34,7 @@ def test_load_laser2_text() -> None:
         tmp.writelines("\n".join(sentences) + "\n")
         tmp.seek(0)
         pipeline = (
-            text.read_text(tmp.name, rtrim=True, ltrim=True, memory_map=True)
+            text.read_text(Path(tmp.name), rtrim=True, ltrim=True, memory_map=True)
             .map(encoder)
             .bucket(len(sentences), drop_remainder=True)
             .map(Collater(pad_value=1))

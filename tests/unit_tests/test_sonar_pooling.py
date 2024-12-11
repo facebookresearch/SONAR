@@ -10,7 +10,7 @@ from torch.testing import assert_close  # type: ignore
 
 from sonar.models.sonar_text.model import Pooling, SonarTextTransformerEncoderModel
 
-pooling_method = SonarTextTransformerEncoderModel.sentence_embedding_pooling
+pooling_method = SonarTextTransformerEncoderModel.static_pooling
 
 
 def test_pooling_max() -> None:

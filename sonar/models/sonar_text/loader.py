@@ -4,13 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Mapping
+from typing import Any, Dict
 
 import torch
-from fairseq2.assets import asset_store, download_manager
-from fairseq2.models.nllb.loader import NllbTokenizerLoader
-from fairseq2.models.transformer import TransformerDecoderModel
-from fairseq2.models.utils import ConfigLoader, ModelLoader
+from fairseq2.models.config_loader import StandardModelConfigLoader
+from fairseq2.models.loader import StandardModelLoader, load_model
+from fairseq2.models.nllb import load_nllb_tokenizer
 from fairseq2.models.utils.checkpoint import convert_fairseq_checkpoint
 
 from sonar.models.sonar_text.builder import (
@@ -21,12 +20,11 @@ from sonar.models.sonar_text.builder import (
     sonar_text_decoder_archs,
     sonar_text_encoder_archs,
 )
-from sonar.models.sonar_text.model import SonarTextTransformerEncoderModel
 
 
 def convert_sonar_text_encoder_checkpoint(
-    checkpoint: Mapping[str, Any], config: SonarTextEncoderConfig
-) -> Mapping[str, Any]:
+    checkpoint: Dict[str, Any], config: SonarTextEncoderConfig
+) -> Dict[str, Any]:
     # Return directly if found fairseq2 attribute in state dict
     if (
         "model" in checkpoint.keys()
@@ -71,25 +69,25 @@ def convert_sonar_text_encoder_checkpoint(
     return out_checkpoint
 
 
-load_sonar_text_encoder_config = ConfigLoader[SonarTextEncoderConfig](
-    asset_store, sonar_text_encoder_archs
+load_sonar_text_encoder_config = StandardModelConfigLoader(
+    family="transformer_encoder",
+    config_kls=SonarTextEncoderConfig,
+    arch_configs=sonar_text_encoder_archs,
 )
 
-load_sonar_text_encoder_model = ModelLoader[
-    SonarTextTransformerEncoderModel, SonarTextEncoderConfig
-](
-    asset_store,
-    download_manager,
-    load_sonar_text_encoder_config,
-    create_sonar_text_encoder_model,
-    convert_sonar_text_encoder_checkpoint,
+load_sonar_text_encoder_model = StandardModelLoader(
+    config_loader=load_sonar_text_encoder_config,
+    factory=create_sonar_text_encoder_model,
+    checkpoint_converter=convert_sonar_text_encoder_checkpoint,
     restrict_checkpoints=False,
 )
 
+load_model.register("transformer_encoder", load_sonar_text_encoder_model)
+
 
 def convert_sonar_text_decoder_checkpoint(
-    checkpoint: Mapping[str, Any], config: SonarTextDecoderConfig
-) -> Mapping[str, Any]:
+    checkpoint: Dict[str, Any], config: SonarTextDecoderConfig
+) -> Dict[str, Any]:
     # Return directly if found fairseq2 attribute in state dict
     if (
         "model" in checkpoint.keys()
@@ -140,19 +138,19 @@ def convert_sonar_text_decoder_checkpoint(
     return out_checkpoint
 
 
-load_sonar_text_decoder_config = ConfigLoader[SonarTextDecoderConfig](
-    asset_store, sonar_text_decoder_archs
+load_sonar_text_decoder_config = StandardModelConfigLoader(
+    family="transformer_decoder",
+    config_kls=SonarTextDecoderConfig,
+    arch_configs=sonar_text_decoder_archs,
 )
 
-load_sonar_text_decoder_model = ModelLoader[
-    TransformerDecoderModel, SonarTextDecoderConfig
-](
-    asset_store,
-    download_manager,
-    load_sonar_text_decoder_config,
-    create_sonar_text_decoder_model,
-    convert_sonar_text_decoder_checkpoint,
+load_sonar_text_decoder_model = StandardModelLoader(
+    config_loader=load_sonar_text_decoder_config,
+    factory=create_sonar_text_decoder_model,
+    checkpoint_converter=convert_sonar_text_decoder_checkpoint,
     restrict_checkpoints=False,
 )
 
-load_sonar_tokenizer = NllbTokenizerLoader(asset_store, download_manager)
+load_model.register("transformer_decoder", load_sonar_text_decoder_model)
+
+load_sonar_tokenizer = load_nllb_tokenizer

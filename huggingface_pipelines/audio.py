@@ -246,15 +246,12 @@ class HFAudioToEmbeddingPipeline(Pipeline):
                 audio_inputs = self.collect_valid_audio_inputs(batch[column])
 
                 if not audio_inputs:
-
                     raise ValueError(f"No valid audio inputs found in column {column}/")
 
                 try:
-
                     audio_embeddings: List[np.ndarray] = []
 
                     for i in range(0, len(audio_inputs), self.config.batch_size):
-
                         batch_inputs = [
                             tensor.to(self.config.device)
                             for tensor in audio_inputs[i : i + self.config.batch_size]

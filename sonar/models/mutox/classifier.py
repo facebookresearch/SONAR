@@ -5,11 +5,9 @@
 # MIT_LICENSE file in the root directory of this source tree.
 
 from dataclasses import dataclass
-from typing import Optional
 
 import torch
-from fairseq2.models.utils.arch_registry import ArchitectureRegistry
-from fairseq2.typing import DataType, Device
+from fairseq2.config_registry import ConfigRegistry
 from torch import nn
 
 
@@ -38,4 +36,4 @@ class MutoxConfig:
     input_size: int
 
 
-mutox_archs = ArchitectureRegistry[MutoxConfig]("mutox_classifier")
+mutox_archs = ConfigRegistry[MutoxConfig]()
