@@ -20,8 +20,6 @@ from sonar.models.sonar_text.builder import (
     sonar_text_decoder_archs,
     sonar_text_encoder_archs,
 )
-from sonar.models.sonar_text.model import SonarTextTransformerEncoderModel
-from sonar.nn.conditional_decoder_model import ConditionalTransformerDecoderModel
 
 
 def convert_sonar_text_encoder_checkpoint(

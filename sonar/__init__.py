@@ -4,9 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-"""SONAR provides a set of speech and text encoders for multilingual, multimodal semantic embedding.
+"""SONAR provides a set of speech and text encoders for multilingual, multimodal semantic embedding."""
 
-"""
 from fairseq2.assets import default_asset_store
 
 __version__ = "0.3.1"

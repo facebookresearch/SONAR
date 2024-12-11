@@ -5,11 +5,9 @@
 # MIT_LICENSE file in the root directory of this source tree.
 
 from dataclasses import dataclass
-from typing import Optional
 
 import torch
 from fairseq2.config_registry import ConfigRegistry
-from fairseq2.typing import DataType, Device
 from torch import nn
 
 

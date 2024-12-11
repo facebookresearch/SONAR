@@ -10,7 +10,7 @@ from fairseq2.models.config_loader import StandardModelConfigLoader
 from fairseq2.models.loader import StandardModelLoader, load_model
 
 from .builder import create_mutox_model
-from .classifier import MutoxClassifier, MutoxConfig, mutox_archs
+from .classifier import MutoxConfig, mutox_archs
 
 __import__("sonar")  # Import only to update asset_store
 

@@ -94,9 +94,7 @@ class AudioToFbankDataPipelineBuilder(SpeechInferencePipeline):
         # Start building the pipeline
         pipeline_builder = (
             # Open TSV, skip the header line, split into fields, and return audio field
-            read_text(context.data_file, rtrim=True)
-            .skip(1)
-            .map(split_tsv)
+            read_text(context.data_file, rtrim=True).skip(1).map(split_tsv)
         )
 
         # Memory map audio files and cache up to 10 files.

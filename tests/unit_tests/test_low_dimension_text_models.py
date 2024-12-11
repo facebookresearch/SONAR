@@ -14,7 +14,6 @@ from sonar.models.sonar_text.builder import (
     decoder_toy,
     encoder_basic,
 )
-from sonar.models.sonar_text.model import Pooling
 
 
 def test_low_dim_encoder():
