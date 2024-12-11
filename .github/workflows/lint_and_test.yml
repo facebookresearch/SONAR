@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - run: uvx --with=types-PyYAML mypy
+      - run: uvx mypy --install-types --non-interactive . 
   tests:
     runs-on: ubuntu-latest
     needs: [lock_file]
