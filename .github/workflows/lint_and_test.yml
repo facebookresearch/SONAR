@@ -28,7 +28,8 @@ jobs:
         run: |
           sudo apt-get install libsndfile1
           python -m pip install --upgrade pip
-          python -m pip install fairseq2==v0.3.0rc1 --pre --extra-index-url  https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/ 
+          python -m pip install fairseq2n==0.3.0rc1+cpu --pre --extra-index-url  https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/ 
+          python -m pip install fairseq2==0.3.0rc1 --pre --extra-index-url  https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/ 
           python -m pip install -r requirements.txt
           python -m pip install -r requirements-dev.txt
           python -m pip install -e .
@@ -59,8 +60,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get install libsndfile1
-          python -m pip install --upgrade pip
-          python -m pip install fairseq2==v0.3.0rc1 --pre --extra-index-url  https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/ 
+          python -m pip install --upgrade pip          
+          python -m pip install fairseq2n==0.3.0rc1+cpu --pre --extra-index-url  https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/ 
+          python -m pip install fairseq2==0.3.0rc1 --pre --extra-index-url  https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/ 
           python -m pip install -r requirements.txt
           python -m pip install -r requirements-dev.txt
           python -m pip install -e .
@@ -83,8 +85,9 @@ jobs:
           cache: "pip"
       - name: Install dependencies
         run: |
-          sudo apt-get install libsndfile1
-          python -m pip install fairseq2==v0.3.0rc1 --pre --extra-index-url  https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/ 
+          sudo apt-get install libsndfile1          
+          python -m pip install fairseq2n==0.3.0rc1+cpu --pre --extra-index-url  https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/ 
+          python -m pip install fairseq2==0.3.0rc1 --pre --extra-index-url  https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/ 
           python -m pip install -r requirements.txt
           python -m pip install -r requirements-dev.txt
           python -m pip install -e .
@@ -109,7 +112,8 @@ jobs:
         run: |
           sudo apt-get install libsndfile1
           python -m pip install --upgrade pip
-          python -m pip install fairseq2==v0.3.0rc1 --pre --extra-index-url  https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/ 
+          python -m pip install fairseq2n==0.3.0rc1+cpu --pre --extra-index-url  https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/ 
+          python -m pip install fairseq2==0.3.0rc1 --pre --extra-index-url  https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/ 
           python -m pip install -r requirements.txt
           python -m pip install -r requirements-dev.txt
           python -m pip install -e .

@@ -31,7 +31,7 @@ classifiers = [
 ]
 
 dependencies = [
-  "fairseq2>=0.3.0rc1",
+#  "fairseq2>=0.3.0rc1", # install manually from https://fair.pkg.atmeta.com/fairseq2/whl/rc/pt2.5.1/cpu/
   "numpy>=1.21",
   "torch",
   "torchaudio",
