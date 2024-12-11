@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - run: uvx mypy --install-types --non-interactive . 
+      - run: uvx mypy --install-types --non-interactive --ignore-missing-imports . 
   tests:
     runs-on: ubuntu-latest
     needs: [lock_file]

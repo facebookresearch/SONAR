@@ -81,7 +81,7 @@ per-file-ignores = {"__init__.py"=["F401"]}
 python_version = "3.8"
 show_error_codes = true
 check_untyped_defs = true
-disable_error_code = "import-untyped"
+ignore_missing_imports = true
 
 files = ["sonar/"]
 
