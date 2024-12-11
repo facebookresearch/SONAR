@@ -328,7 +328,7 @@ class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
             tokenizer = load_sonar_tokenizer(tokenizer, progress=False)
 
         self.tokenizer = tokenizer
-        self.model = SonarEncoderDecoderModel(encoder, decoder).to(device).eval()
+        self.model = SonarEncoderDecoderModel(encoder, decoder).to(device).eval()  # type: ignore
 
         # Only quantize the model in CUDA to bypass the error "LayerNormKernelImpl" not implemented for 'Half'
         # in some CUDAs and torch versions
@@ -407,7 +407,7 @@ class SpeechToEmbeddingModelPipeline(SpeechModelPipelineInterface):
 
         if isinstance(encoder, str):
             encoder = load_sonar_speech_model(encoder, device=device, progress=False)
-        self.model = encoder.to(device).eval()
+        self.model = encoder.to(device).eval()  # type: ignore
 
         # Only quantize the model in CUDA to bypass the error "LayerNormKernelImpl" not implemented for 'Half'
         # in some CUDAs and torch versions
