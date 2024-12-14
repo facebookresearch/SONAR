@@ -1,0 +1,12 @@
+columns:
+  - text_preprocessed_embeddings
+output_column_suffix: reconstructed
+batch_size: 5
+decoder_model: text_sonar_basic_decoder
+target_lang: eng_Latn
+take: 1
+output_path: results/ag_news
+
+
+
+
