@@ -9,7 +9,7 @@ from typing import Any, Dict
 import torch
 from fairseq2.models.config_loader import StandardModelConfigLoader
 from fairseq2.models.loader import StandardModelLoader, load_model
-from fairseq2.models.nllb import load_nllb_tokenizer
+from fairseq2.data.text.tokenizers.nllb import load_nllb_tokenizer
 from fairseq2.models.utils.checkpoint import convert_fairseq_checkpoint
 
 from sonar.models.sonar_text.builder import (
