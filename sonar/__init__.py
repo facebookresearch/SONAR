@@ -27,6 +27,7 @@ from sonar.models.laser2_text import (
     Laser2TokenizerHandler,
     register_laser2_configs,
 )
+from sonar.models.mutox import MutoxConfig, MutoxModelHandler, register_mutox_configs
 from sonar.models.sonar_speech import (
     SonarSpeechEncoderConfig,
     SonarSpeechEncoderHandler,
@@ -91,6 +92,15 @@ def _register_models(context: RuntimeContext) -> None:
 
     register_laser2_configs(context)
 
+    # mutox
+    configs = context.get_config_registry(MutoxConfig)
+    default_arch = "mutox"
+    handler = MutoxModelHandler(
+        configs, default_arch, asset_download_manager, tensor_loader
+    )
+    registry.register(handler.family, handler)
+    register_mutox_configs(context)
+
     # SONAR Speech Encoder
     configs = context.get_config_registry(SonarSpeechEncoderConfig)
 
@@ -139,4 +149,6 @@ def _register_text_tokenizers(context: RuntimeContext) -> None:
 
     registry.register(handler.family, handler)
 
-setup_fairseq2()
+
+# TODO: make this setup optional, in case if the end users want to setup it elsewhere
+# setup_fairseq2()

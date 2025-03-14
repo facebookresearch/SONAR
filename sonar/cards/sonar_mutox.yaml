@@ -10,7 +10,7 @@
 #It is included here to prevent circular dependencies between the Seamless Communication
 
 name: sonar_mutox
-model_type: mutox_classifier
+model_family: mutox_classifier
 model_arch: mutox
 checkpoint: "https://dl.fbaipublicfiles.com/seamless/models/mutox.pt"
 input_size: 1024

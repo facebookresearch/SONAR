@@ -116,3 +116,46 @@ class TestSonarTextClass:
         encoded_eng = self.text2vec.predict(self.eng_sentences, source_lang="eng_Latn")
         decoded_fra = self.vec2text.predict(encoded_eng, target_lang="fra_Latn")
         assert decoded_fra == self.fr_sentences
+
+    def test_order_preserving(self) -> None:
+        random_sentneces = [
+            "xwz",
+            "qazwsxedcrfvtg",
+            "rtyuio",
+            "asdfghjklmnbv",
+            "zxcvb",
+            "poiuytrewq",
+            "mnbvcxzasdfg",
+            "lkjhgfdsaq",
+            "qwertyuiopk",
+            "asdfgh",
+        ]
+        output1 = self.text2vec.predict(
+            random_sentneces, source_lang="eng_Latn", batch_size=2
+        )
+        output2 = self.text2vec.predict(
+            random_sentneces, source_lang="eng_Latn", batch_size=1
+        )
+        output3 = self.text2vec.predict(
+            random_sentneces,
+            source_lang="eng_Latn",
+            batch_size=None,
+            batch_max_tokens=5,
+        )
+        output4 = self.text2vec.predict(
+            random_sentneces,
+            source_lang="eng_Latn",
+            batch_size=None,
+            batch_max_tokens=30,
+        )
+        output5 = torch.cat(
+            [
+                self.text2vec.predict([x], source_lang="eng_Latn")
+                for x in random_sentneces
+            ],
+            dim=0,
+        )
+        assert_close(output1, output2)
+        assert_close(output2, output3)
+        assert_close(output3, output4)
+        assert_close(output4, output5)

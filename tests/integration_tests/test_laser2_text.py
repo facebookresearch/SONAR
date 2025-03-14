@@ -8,10 +8,12 @@ import tempfile
 from pathlib import Path
 
 import torch
-from fairseq2.data import Collater, text
+from fairseq2.data import Collater
+from fairseq2.data.text import read_text
+from fairseq2.data.text.tokenizers import get_text_tokenizer_hub
 from torch.testing import assert_close
 
-from sonar.models.laser2_text.loader import load_laser2_model, load_laser2_tokenizer
+from sonar.models.laser2_text import get_laser2_model_hub
 
 device = torch.device("cpu")
 
@@ -24,17 +26,21 @@ sentences = [
 
 
 def test_load_laser2_text() -> None:
-    model = load_laser2_model(
-        "laser2_text_encoder", device=device, progress=False
-    ).eval()
-    tokenizer = load_laser2_tokenizer("laser2_text_encoder", progress=False)
+    model_hub = get_laser2_model_hub()
+    model = model_hub.load("laser2_text_encoder", device=device)
+
+    model.eval()
+
+    tokenizer_hub = get_text_tokenizer_hub()
+    tokenizer = tokenizer_hub.load("laser2_text_encoder")
+
     encoder = tokenizer.create_encoder()
 
     with tempfile.NamedTemporaryFile(mode="w+t", newline="\n") as tmp:
         tmp.writelines("\n".join(sentences) + "\n")
         tmp.seek(0)
         pipeline = (
-            text.read_text(Path(tmp.name), rtrim=True, ltrim=True, memory_map=True)
+            read_text(Path(tmp.name), rtrim=True, ltrim=True, memory_map=True)
             .map(encoder)
             .bucket(len(sentences), drop_remainder=True)
             .map(Collater(pad_value=1))
