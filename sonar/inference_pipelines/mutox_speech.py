@@ -17,9 +17,8 @@ from sonar.inference_pipelines.speech import (
 )
 from sonar.inference_pipelines.utils import extract_sequence_batch
 from sonar.models.encoder_model import SonarEncoderModel
-from sonar.models.mutox.classifier import MutoxClassifier
-from sonar.models.mutox.loader import load_mutox_model
-from sonar.models.sonar_speech.loader import load_sonar_speech_model
+from sonar.models.mutox import MutoxClassifier, get_mutox_model_hub
+from sonar.models.sonar_speech import get_sonar_speech_encoder_hub
 
 CPU_DEVICE = torch.device("cpu")
 
@@ -45,7 +44,7 @@ class MutoxSpeechClassifierPipeline(SpeechInferencePipeline):
         self.model.to(device).eval()
 
         if isinstance(mutox_classifier, str):
-            self.mutox_classifier = load_mutox_model(
+            self.mutox_classifier = get_mutox_model_hub().load(
                 mutox_classifier,
                 device=device,
             )
@@ -61,9 +60,11 @@ class MutoxSpeechClassifierPipeline(SpeechInferencePipeline):
         encoder_name: str,
         device: Device = CPU_DEVICE,
     ) -> "MutoxSpeechClassifierPipeline":
-        encoder = load_sonar_speech_model(encoder_name, device=device, progress=False)
-        mutox_classifier = load_mutox_model(
-            mutox_classifier_name, device=device, progress=False
+        encoder_hub = get_sonar_speech_encoder_hub()
+        encoder = encoder_hub.load(encoder_name, device=device)
+        mutox_classifier = get_mutox_model_hub().load(
+            mutox_classifier_name,
+            device=device,
         )
         return cls(mutox_classifier=mutox_classifier, encoder=encoder, device=device)
 

@@ -554,10 +554,10 @@ class HFTextToEmbeddingPipeline(Pipeline):
                     batch_size=self.config.batch_size,
                     max_seq_len=self.config.max_seq_len,
                 )
-                batch_embeddings = (
+                batch_embeddings_np = (
                     batch_embeddings.detach().cpu().numpy().astype(self.config.dtype)
                 )
-                embeddings.extend(batch_embeddings)
+                embeddings.extend(batch_embeddings_np)
 
             return np.vstack(embeddings)
         except Exception as e:
