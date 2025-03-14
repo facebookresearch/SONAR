@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Iterable, List, Optional, Sequence, Union, cast
 
 import torch
+import fairseq2
 from fairseq2.data import (
     Collater,
     DataPipeline,
@@ -278,6 +279,7 @@ class SpeechModelPipelineInterface(torch.nn.Module):
 
     def __init__(self, fbank_dtype: DataType) -> None:
         super().__init__()
+        fairseq2.setup_fairseq2()
         self.convert_to_fbank = WaveformToFbankConverter(
             num_mel_bins=80,
             waveform_scale=2**15,

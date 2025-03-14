@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Union, cast
 
 import torch
+import fairseq2
 from fairseq2.data import Collater, read_sequence
 from fairseq2.data.text import read_text
 from fairseq2.data.text.tokenizers import TextTokenizer, get_text_tokenizer_hub
@@ -74,6 +75,7 @@ class TextToTextModelPipeline(torch.nn.Module):
             dtype (DataType, optional): The data type of the model parameters and buffers.
         """
         super().__init__()
+        fairseq2.setup_fairseq2()
         if isinstance(encoder, str):
             encoder_hub = get_sonar_text_encoder_hub()
             encoder = encoder_hub.load(encoder, device=device, dtype=dtype)
@@ -154,6 +156,7 @@ class TextToEmbeddingModelPipeline(torch.nn.Module):
             dtype (DataType, optional): The data type of the model parameters and buffers.
         """
         super().__init__()
+        fairseq2.setup_fairseq2()
         if isinstance(encoder, str):
             encoder_hub = get_sonar_text_encoder_hub()
             encoder = encoder_hub.load(encoder, device=device, dtype=dtype)
@@ -285,6 +288,7 @@ class EmbeddingToTextModelPipeline(torch.nn.Module):
             dtype (DataType, optional): The data type of the model parameters and buffers.
         """
         super().__init__()
+        fairseq2.setup_fairseq2()
         if isinstance(decoder, str):
             decoder_hub = get_sonar_text_decoder_hub()
             decoder = decoder_hub.load(decoder, device=device, dtype=dtype)
