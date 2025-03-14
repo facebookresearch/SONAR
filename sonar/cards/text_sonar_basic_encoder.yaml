@@ -5,11 +5,11 @@
 # LICENSE file in the root directory of this source tree.
 
 name: text_sonar_basic_encoder
-model_type: transformer_encoder  # compat
 model_family: transformer_encoder
 model_arch: basic
 checkpoint: "https://dl.fbaipublicfiles.com/SONAR/sonar_text_encoder.pt"
 tokenizer: "https://dl.fbaipublicfiles.com/SONAR/sentencepiece.source.256000.model"
+tokenizer_family: nllb
 default_lang: eng_Latn
 langs:
   - ace_Arab

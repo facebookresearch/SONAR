@@ -53,6 +53,10 @@ class SonarEncoderModel(ABC, Module):
 
         self.model_dim = model_dim
 
+    @property
+    def dtype(self):
+        return next(self.parameters()).dtype
+
     @abstractmethod
     def forward(self, batch: SequenceBatch) -> SonarEncoderOutput:
         """

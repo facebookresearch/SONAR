@@ -8,15 +8,15 @@ from typing import Optional
 
 from fairseq2.typing import DataType, Device
 
-from sonar.models.sonar_speech.builder import (
+from sonar.models.sonar_speech import (
     SonarSpeechEncoderConfig,
-    create_sonar_speech_encoder_model,
+    SonarSpeechEncoderFactory,
 )
-from sonar.models.sonar_text.builder import (
-    SonarTextDecoderBuilder,
+from sonar.models.sonar_text import (
     SonarTextDecoderConfig,
-    SonarTextEncoderBuilder,
+    SonarTextDecoderFactory,
     SonarTextEncoderConfig,
+    SonarTextEncoderFactory,
 )
 from sonar.models.sonar_translation.model import SonarEncoderDecoderModel
 
@@ -39,12 +39,8 @@ def create_sonar_text_encoder_decoder_model(
     :param dtype:
         The data type of module parameters and buffers.
     """
-    encoder = SonarTextEncoderBuilder(
-        encoder_config, device=device, dtype=dtype
-    ).build_model()
-    decoder = SonarTextDecoderBuilder(
-        decoder_config, device=device, dtype=dtype
-    ).build_model()
+    encoder = SonarTextEncoderFactory(encoder_config).create_model()
+    decoder = SonarTextDecoderFactory(decoder_config).create_model()
 
     return SonarEncoderDecoderModel(encoder=encoder, decoder=decoder).to(
         device=device, dtype=dtype
@@ -69,12 +65,8 @@ def create_sonar_speech_to_text_model(
     :param dtype:
         The data type of module parameters and buffers.
     """
-    encoder = create_sonar_speech_encoder_model(
-        encoder_config, device=device, dtype=dtype
-    )
-    decoder = SonarTextDecoderBuilder(
-        decoder_config, device=device, dtype=dtype
-    ).build_model()
+    encoder = SonarSpeechEncoderFactory(encoder_config).create_model()
+    decoder = SonarTextDecoderFactory(decoder_config).create_model()
 
     return SonarEncoderDecoderModel(encoder=encoder, decoder=decoder).to(
         device=device, dtype=dtype

@@ -5,8 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 name: laser2_text_encoder
-model_type: lstm  # compat
 model_family: lstm
 model_arch: laser2
 checkpoint: "https://dl.fbaipublicfiles.com/nllb/laser/laser2.pt"
 tokenizer: "https://dl.fbaipublicfiles.com/nllb/laser/laser2.spm"
+tokenizer_family: lstm

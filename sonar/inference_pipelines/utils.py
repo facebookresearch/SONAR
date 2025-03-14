@@ -24,7 +24,7 @@ def extract_sequence_batch(x: SequenceData, device: Device) -> SequenceBatch:
 def add_progress_bar(
     sequence: Iterable,
     inputs: Optional[Union[Iterable, str, Path]] = None,
-    batch_size: int = 1,
+    batch_size: Optional[int] = 1,
     **kwargs,
 ) -> Iterable:
     """
@@ -39,7 +39,8 @@ def add_progress_bar(
     total = None
     if inputs is None:
         inputs = sequence
-    if hasattr(inputs, "__len__") and not isinstance(inputs, (str, Path)):
-        total = math.ceil(len(inputs) / batch_size)  # type: ignore
+    if batch_size is not None:
+        if hasattr(inputs, "__len__") and not isinstance(inputs, (str, Path)):
+            total = math.ceil(len(inputs) / batch_size)  # type: ignore
 
     return tqdm(sequence, total=total, **kwargs)
