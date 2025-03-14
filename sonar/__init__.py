@@ -148,7 +148,3 @@ def _register_text_tokenizers(context: RuntimeContext) -> None:
     handler = Laser2TokenizerHandler(context.asset_download_manager)
 
     registry.register(handler.family, handler)
-
-
-# TODO: make this setup optional, in case if the end users want to setup it elsewhere
-# setup_fairseq2()
