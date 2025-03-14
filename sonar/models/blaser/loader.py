@@ -5,8 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 
 import fairseq2
+
 from sonar.models.blaser import get_blaser_model_hub
-from sonar.models.blaser.model import BlaserModel 
+from sonar.models.blaser.model import BlaserModel
 
 
 def load_blaser_model(model_name: str) -> BlaserModel:

@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from typing import Dict
+
 import pytest
 import torch
 from torch import nn
@@ -112,7 +114,7 @@ def test_convert_mutox_checkpoint():
         "non_model_key": torch.tensor([3.0]),
     }
     config = MutoxConfig(input_size=1024)
-    converted = MutoxModelHandler._convert_checkpoint(None, checkpoint, config)  # type: ignore
+    converted: Dict[str, torch.Tensor] = MutoxModelHandler._convert_checkpoint(None, checkpoint, config)  # type: ignore
 
     # Verify only 'model_all.' keys are retained in the converted dictionary
     assert "model" in converted, "Converted checkpoint should contain a 'model' key"

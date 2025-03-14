@@ -8,8 +8,8 @@ import warnings
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Union, cast
 
-import torch
 import fairseq2
+import torch
 from fairseq2.data import Collater, read_sequence
 from fairseq2.data.text import read_text
 from fairseq2.data.text.tokenizers import TextTokenizer, get_text_tokenizer_hub

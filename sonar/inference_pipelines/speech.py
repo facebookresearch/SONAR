@@ -10,8 +10,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Iterable, List, Optional, Sequence, Union, cast
 
-import torch
 import fairseq2
+import torch
 from fairseq2.data import (
     Collater,
     DataPipeline,
