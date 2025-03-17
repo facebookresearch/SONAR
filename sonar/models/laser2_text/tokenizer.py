@@ -8,15 +8,17 @@ from pathlib import Path
 from typing import Optional, final
 
 import torch
-from fairseq2.data.text import (
+from fairseq2.data.text.tokenizers import (
     AbstractTextTokenizer,
-    SentencePieceDecoder,
-    SentencePieceEncoder,
-    SentencePieceModel,
     TextTokenDecoder,
     TextTokenEncoder,
 )
-from fairseq2.data.text.sentencepiece import vocab_info_from_sentencepiece
+from fairseq2.data.text.tokenizers.sentencepiece import (
+    SentencePieceDecoder,
+    SentencePieceEncoder,
+    SentencePieceModel,
+    vocab_info_from_sentencepiece,
+)
 from fairseq2.typing import Device, override
 from torch import Tensor
 from typing_extensions import NoReturn

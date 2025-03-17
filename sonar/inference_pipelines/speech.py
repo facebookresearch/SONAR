@@ -10,21 +10,29 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Iterable, List, Optional, Sequence, Union, cast
 
+import fairseq2
 import torch
-from fairseq2.data import Collater, DataPipeline, DataPipelineBuilder, FileMapper
+from fairseq2.data import (
+    Collater,
+    DataPipeline,
+    DataPipelineBuilder,
+    FileMapper,
+    MemoryBlock,
+    read_sequence,
+)
 from fairseq2.data.audio import AudioDecoder, WaveformToFbankConverter
-from fairseq2.data.data_pipeline import read_sequence
-from fairseq2.data.memory import MemoryBlock
-from fairseq2.data.text import StrSplitter, TextTokenizer, read_text
-from fairseq2.generation import BeamSearchSeq2SeqGenerator, SequenceToTextConverter
+from fairseq2.data.text import StrSplitter, read_text
+from fairseq2.data.text.tokenizers import TextTokenizer, get_text_tokenizer_hub
+from fairseq2.generation import BeamSearchSeq2SeqGenerator
+from fairseq2.generation.text import SequenceToTextConverter
 from fairseq2.models.sequence import SequenceBatch
 from fairseq2.typing import DataType, Device
 
 from sonar.inference_pipelines.utils import add_progress_bar, extract_sequence_batch
 from sonar.models.encoder_model import SonarEncoderModel
-from sonar.models.sonar_speech.loader import load_sonar_speech_model
+from sonar.models.sonar_speech import get_sonar_speech_encoder_hub
 from sonar.models.sonar_speech.model import SonarSpeechEncoderModel
-from sonar.models.sonar_text import load_sonar_text_decoder_model, load_sonar_tokenizer
+from sonar.models.sonar_text import get_sonar_text_decoder_hub
 from sonar.models.sonar_translation.model import SonarEncoderDecoderModel
 from sonar.nn.conditional_decoder_model import ConditionalTransformerDecoderModel
 
@@ -94,7 +102,9 @@ class AudioToFbankDataPipelineBuilder(SpeechInferencePipeline):
         # Start building the pipeline
         pipeline_builder = (
             # Open TSV, skip the header line, split into fields, and return audio field
-            read_text(context.data_file, rtrim=True).skip(1).map(split_tsv)
+            read_text(context.data_file, rtrim=True)
+            .skip(1)
+            .map(split_tsv)
         )
 
         # Memory map audio files and cache up to 10 files.
@@ -168,9 +178,8 @@ class SpeechToEmbeddingPipeline(SpeechInferencePipeline):
 
     @classmethod
     def load_model_from_name(cls, encoder_name: str) -> "SpeechToEmbeddingPipeline":
-        encoder = load_sonar_speech_model(
-            encoder_name, device=CPU_DEVICE, progress=False
-        )
+        encoder_hub = get_sonar_speech_encoder_hub()
+        encoder = encoder_hub.load(encoder_name, device=CPU_DEVICE)
         return cls(model=encoder)
 
     def prebuild_pipeline(self, context: SpeechInferenceParams) -> DataPipelineBuilder:
@@ -228,13 +237,15 @@ class SpeechToTextPipeline(SpeechInferencePipeline):
     def load_model_from_name(
         cls, encoder_name: str, decoder_name: str
     ) -> "SpeechToTextPipeline":
-        tokenizer = load_sonar_tokenizer(decoder_name, progress=False)
-        encoder = load_sonar_speech_model(
-            encoder_name, device=CPU_DEVICE, progress=False
-        )
-        decoder = load_sonar_text_decoder_model(
-            decoder_name, device=CPU_DEVICE, progress=False
-        )
+        tokenizer_hub = get_text_tokenizer_hub()
+        tokenizer = tokenizer_hub.load(decoder_name)
+
+        encoder_hub = get_sonar_speech_encoder_hub()
+        encoder = encoder_hub.load(encoder_name, device=CPU_DEVICE)
+
+        decoder_hub = get_sonar_text_decoder_hub()
+        decoder = decoder_hub.load(decoder_name, device=CPU_DEVICE)
+
         model = SonarEncoderDecoderModel(encoder, decoder).eval()
         return cls(model=model, tokenizer=tokenizer)
 
@@ -268,6 +279,7 @@ class SpeechModelPipelineInterface(torch.nn.Module):
 
     def __init__(self, fbank_dtype: DataType) -> None:
         super().__init__()
+        fairseq2.setup_fairseq2()
         self.convert_to_fbank = WaveformToFbankConverter(
             num_mel_bins=80,
             waveform_scale=2**15,
@@ -319,16 +331,17 @@ class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
         self.device = device
         super().__init__(fbank_dtype)
         if isinstance(encoder, str):
-            encoder = load_sonar_speech_model(encoder, device=device, progress=False)
+            encoder_hub = get_sonar_speech_encoder_hub()
+            encoder = encoder_hub.load(encoder, device=device)
         if isinstance(decoder, str):
-            decoder = load_sonar_text_decoder_model(
-                decoder, device=device, progress=False
-            )
+            decoder_hub = get_sonar_text_decoder_hub()
+            decoder = decoder_hub.load(decoder, device=device)
         if isinstance(tokenizer, str):
-            tokenizer = load_sonar_tokenizer(tokenizer, progress=False)
+            tokenizer_hub = get_text_tokenizer_hub()
+            tokenizer = tokenizer_hub.load(tokenizer)
 
         self.tokenizer = tokenizer
-        self.model = SonarEncoderDecoderModel(encoder, decoder).to(device).eval()  # type: ignore
+        self.model = SonarEncoderDecoderModel(encoder, decoder).to(device).eval()
 
         # Only quantize the model in CUDA to bypass the error "LayerNormKernelImpl" not implemented for 'Half'
         # in some CUDAs and torch versions
@@ -406,8 +419,9 @@ class SpeechToEmbeddingModelPipeline(SpeechModelPipelineInterface):
         super().__init__(fbank_dtype)
 
         if isinstance(encoder, str):
-            encoder = load_sonar_speech_model(encoder, device=device, progress=False)
-        self.model = encoder.to(device).eval()  # type: ignore
+            encoder_hub = get_sonar_speech_encoder_hub()
+            encoder = encoder_hub.load(encoder, device=device)
+        self.model = encoder.to(device).eval()
 
         # Only quantize the model in CUDA to bypass the error "LayerNormKernelImpl" not implemented for 'Half'
         # in some CUDAs and torch versions

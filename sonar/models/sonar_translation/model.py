@@ -41,6 +41,10 @@ class SonarEncoderDecoderModel(EncoderDecoderModel):
         self.encoder = encoder
         self.decoder = decoder
 
+    @property
+    def dtype(self):
+        return next(self.parameters()).dtype
+
     def encode(
         self, seqs: Tensor, padding_mask: Optional[PaddingMask]
     ) -> Tuple[Tensor, Optional[PaddingMask]]:

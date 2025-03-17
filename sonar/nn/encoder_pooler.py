@@ -8,10 +8,10 @@ from abc import abstractmethod
 from typing import Optional
 
 import torch
-from fairseq2.models.transformer.frontend import TransformerFrontend
+from fairseq2.models.transformer import TransformerFrontend
 from fairseq2.nn import Linear
 from fairseq2.nn.padding import PaddingMask
-from fairseq2.nn.transformer.decoder import TransformerDecoder
+from fairseq2.nn.transformer import TransformerDecoder
 from fairseq2.typing import Device, override
 from torch import Tensor
 from torch.nn import Module

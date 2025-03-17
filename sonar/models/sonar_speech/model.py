@@ -8,7 +8,7 @@ from typing import Optional, Tuple
 
 from fairseq2.models.sequence import SequenceBatch
 from fairseq2.models.transformer import TransformerFrontend
-from fairseq2.nn.normalization import LayerNorm
+from fairseq2.nn import LayerNorm
 from fairseq2.nn.padding import PaddingMask
 from fairseq2.nn.transformer import TransformerEncoder
 from torch import Tensor

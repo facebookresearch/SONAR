@@ -8,36 +8,44 @@ import tempfile
 from pathlib import Path
 
 import torch
-from fairseq2.assets import InProcAssetMetadataProvider, default_asset_store
-from fairseq2.assets.card import AssetCard
+from fairseq2.assets import AssetCard, InProcAssetMetadataLoader, StandardAssetStore
+from fairseq2.context import get_runtime_context
 
-from sonar.models.sonar_text.builder import SonarTextDecoderBuilder, decoder_toy
-from sonar.models.sonar_text.loader import load_sonar_text_decoder_model
+from sonar.models.sonar_text import (
+    SonarTextDecoderConfig,
+    SonarTextDecoderFactory,
+    get_sonar_text_decoder_hub,
+)
 
 
 def create_model_card(
+    asset_store: StandardAssetStore,
     checkpoint_path: Path,
     model_type: str,
     model_arch: str,
     model_name: str = "on_the_fly_model",
 ) -> AssetCard:
-    model_card_info = {
+    model_card_info: dict[str, object] = {
         "name": model_name,
         "model_type": model_type,
         "model_family": model_type,
         "model_arch": model_arch,
         "checkpoint": "file://" + checkpoint_path.as_posix(),
     }
-    default_asset_store.metadata_providers.append(
-        InProcAssetMetadataProvider([model_card_info])
-    )
-    return default_asset_store.retrieve_card(model_name)
+    metadata_loader = InProcAssetMetadataLoader([model_card_info])
+    asset_store.metadata_providers.append(metadata_loader.load())
+    return asset_store.retrieve_card(model_name)
 
 
 def test_tied_weight():
     """Testing that the decoder input and ouput embeddings are tied after creating the model and after loading"""
-    cfg = decoder_toy()
-    model = SonarTextDecoderBuilder(cfg).build_model()
+    context = get_runtime_context()
+
+    config_registry = context.get_config_registry(SonarTextDecoderConfig)
+
+    config = config_registry.get("toy")
+
+    model = SonarTextDecoderFactory(config).create_model()
     assert model.decoder_frontend.embed.weight is model.final_proj.weight
 
     # counting the parameters
@@ -56,11 +64,13 @@ def test_tied_weight():
 
         # now load the model using a standard loader, based on a card
         card = create_model_card(
+            context.asset_store,
             checkpoint_path=filename,
             model_type="transformer_decoder",
             model_arch="toy",
         )
-        model_new = load_sonar_text_decoder_model(card)
+        decoder_hub = get_sonar_text_decoder_hub()
+        model_new = decoder_hub.load(card)
 
         # test that the newly loaded model has the same weight tying as the original one
         total_params_new = sum(p.numel() for p in model_new.parameters())

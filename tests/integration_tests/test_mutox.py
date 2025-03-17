@@ -8,7 +8,7 @@ import pytest
 import torch
 
 from sonar.inference_pipelines.text import TextToEmbeddingModelPipeline
-from sonar.models.mutox.loader import load_mutox_model
+from sonar.models.mutox import get_mutox_model_hub
 
 
 @pytest.mark.parametrize(
@@ -48,7 +48,8 @@ def test_sonar_mutox_classifier_integration(input_texts, source_lang, expected_o
         device=device,
     )
 
-    classifier = load_mutox_model("sonar_mutox", device=device, dtype=dtype).eval()
+    hub = get_mutox_model_hub()
+    classifier = hub.load("sonar_mutox", device=device, dtype=dtype).eval()
 
     with torch.inference_mode():
         embeddings = t2vec_model.predict(input_texts, source_lang=source_lang)
@@ -109,7 +110,8 @@ def test_sonar_mutox_classifier_probability_integration(
         device=device,
     )
 
-    classifier = load_mutox_model("sonar_mutox", device=device, dtype=dtype).eval()
+    hub = get_mutox_model_hub()
+    classifier = hub.load("sonar_mutox", device=device, dtype=dtype).eval()
 
     for text, lang, expected_prob in zip(
         input_texts, [source_lang] * len(input_texts), expected_probabilities

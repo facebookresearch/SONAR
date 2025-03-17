@@ -31,11 +31,21 @@ The full list of supported languages (along with download links) can be found he
 
 You can install SONAR with `pip install sonar-space`. Note that there is another `sonar` package on pip that IS NOT this project, make sure to use `sonar-space` in your dependencies.
 
-SONAR depends on fairseq2 and torch/torchaudio, you will have to install the variant (cpu/cuda/...) that works for your environment manully.
-
-Check [fairseq2 variants](https://github.com/facebookresearch/fairseq2?tab=readme-ov-file#variants) for possible variants. Note that SONAR currently relies on the release candidate for fairseq2 0.3.0 rc1.
-
+Note that SONAR depends on [Fairseq2](https://github.com/facebookresearch/fairseq2), which should precisely match the versions of `pytorch` and `CUDA` (here are the [possible variants](https://github.com/facebookresearch/fairseq2?tab=readme-ov-file#variants)). You can check with `pip show torch` which version of pytorch you gave. For example, if it equals `2.6.0+cu124`, you should install `fairseq2` with from the following source:
+```bash
+pip install fairseq2 --extra-index-url https://fair.pkg.atmeta.com/fairseq2/whl/pt2.6.0/cu124
+```
 If [fairseq2](https://github.com/facebookresearch/fairseq2) does not provide a build for your machine, check the readme of that project to build it locally.
+
+We recommend installing SONAR only after you have a correct version of `fairseq2` installed.  Note that SONAR currently relies on the stable version of fairseq2 0.4.5 (with minor variations possible).
+
+If you want to install SONAR manually, you can install it localy:
+
+```bash
+pip install --upgrade pip
+pip install -e .
+```
+
 
 ## Usage
 fairseq2 will automatically download models into your `$TORCH_HOME/hub` directory upon using the commands below.
@@ -51,6 +61,20 @@ print(embeddings.shape)
 # torch.Size([2, 1024])
 ```
 
+Note that by default, all SONAR models are loaded to a CPU device, which is relatively slow. If you want to use a GPU instead, you should provide the `device` argument when initializing the model (this applies to every model). Similarly, you can pass a `dtype` argument. For example:
+```python
+import torch
+from sonar.inference_pipelines.text import TextToEmbeddingModelPipeline
+
+embedder = TextToEmbeddingModelPipeline(
+  encoder="text_sonar_basic_encoder", 
+  tokenizer="text_sonar_basic_encoder", 
+  device=torch.device("cuda"),
+  dtype=torch.float16,
+)
+```
+
+
 ### Reconstruct text from SONAR embeddings
 ```python
 from sonar.inference_pipelines.text import EmbeddingToTextModelPipeline
@@ -61,6 +85,26 @@ reconstructed = vec2text_model.predict(embeddings, target_lang="eng_Latn", max_s
 print(reconstructed)
 # ['My name is SONAR.', 'I can embed the sentences into vector space.']
 ```
+By default, text generation in SONAR is based on beam search ([BeamSearchSeq2SeqGenerator](https://github.com/facebookresearch/fairseq2/blob/v0.4.5/src/fairseq2/generation/_beam_search/_generator.py#L45) from fairseq2) with the default setting of  `beam_size=5`. If one passes a `sampler` argument, we will use a [SamplingSeq2SeqGenerator](https://github.com/facebookresearch/fairseq2/blob/v0.4.5/src/fairseq2/generation/_sampling/_generator.py#L200) instead. All additional arguments are passed to the generator constructor. For example:
+
+```python
+from fairseq2.generation import TopPSampler, TopKSampler
+embeddings = t2vec_model.predict(["Bonjour le monde!"] * 10, source_lang="fra_Latn")
+vec2text_model.predict(embeddings, target_lang="eng_Latn", sampler=TopPSampler(0.99), max_seq_len=128)
+# ['Hello, the world!',
+#  'Hey, everybody!',
+#  'Good day to you, world!',
+#  'Hello, the world!',
+#  'Hello, people.',
+#  'Hello, everybody, around the world.',
+#  'Hello, world. How are you?',
+#  "Hey, what's up?",
+#  'Good afternoon, everyone.',
+#  'Hello to the world!']
+# the outputs are now random, so they will be different every time
+```
+Note that the `sampler` argument was a singal to use a `SamplingSeq2SeqGenerator` instead of a `BeamSearchSeq2SeqGenerator`, and the `max_seq_len` argument was passed to the `SamplingSeq2SeqGenerator` constructor.
+
 
 ### Translate text with SONAR
 ```python
@@ -132,8 +176,9 @@ src_embs = text_embedder.predict(["Le chat s'assit sur le tapis."], source_lang=
 ref_embs = text_embedder.predict(["The cat sat on the mat."], source_lang="eng_Latn")
 mt_embs = text_embedder.predict(["The cat sat down on the carpet."], source_lang="eng_Latn")
 
-print(blaser_ref(src=src_embs, ref=ref_embs, mt=mt_embs).item())  # 4.688
-print(blaser_qe(src=src_embs, mt=mt_embs).item())  # 4.708
+with torch.inference_mode():
+    print(blaser_ref(src=src_embs, ref=ref_embs, mt=mt_embs).item())  # 4.688
+    print(blaser_qe(src=src_embs, mt=mt_embs).item())  # 4.708
 ```
 
 Detailed model cards with more examples: [facebook/blaser-2.0-ref](https://huggingface.co/facebook/blaser-2.0-ref), 
@@ -169,15 +214,18 @@ classifier = load_mutox_model(
 
 with torch.inference_mode():
     emb = t2vec_model.predict(["De peur que le pays ne se prostitue et ne se remplisse de crimes."], source_lang='fra_Latn')
-    x = classifier(emb.to(device).to(dtype)) # tensor([[-19.7812]], device='cuda:0', dtype=torch.float16)
+    x = classifier(emb.to(device).to(dtype)) 
+    print(x) # tensor([[-19.7812]], device='cuda:0', dtype=torch.float16)
 
 with torch.inference_mode():
     emb = t2vec_model.predict(["She worked hard and made a significant contribution to the team."], source_lang='eng_Latn')
-    x = classifier(emb.to(device).to(dtype)) # tensor([[-53.5938]], device='cuda:0', dtype=torch.float16)
+    x = classifier(emb.to(device).to(dtype))
+    print(x) # tensor([[-53.5938]], device='cuda:0', dtype=torch.float16)
 
 with torch.inference_mode():
     emb = t2vec_model.predict(["El no tiene ni el más mínimo talento, todo lo que ha logrado ha sido gracias a sobornos y manipulaciones."], source_lang='spa_Latn')
-    x = classifier(emb.to(device).to(dtype)) # tensor([[-21.4062]], device='cuda:0', dtype=torch.float16)
+    x = classifier(emb.to(device).to(dtype))
+    print(x) # tensor([[-21.4062]], device='cuda:0', dtype=torch.float16)
 ```
 
 For a CLI way of running the MuTox pipeline, go to [Seamless Communication/.../MuTox](https://github.com/facebookresearch/seamless_communication/tree/main/src/seamless_communication/cli/toxicity/mutox).

@@ -1,0 +1,2 @@
+# this file is required for mypy to start using type annotations.
+# see https://blog.whtsky.me/tech/2021/dont-forget-py.typed-for-your-typed-python-package/

@@ -7,6 +7,7 @@
 from pathlib import Path
 
 import torch
+from fairseq2.data.text.tokenizers import get_text_tokenizer_hub
 from torch.testing import assert_close
 
 from sonar.inference_pipelines import (
@@ -14,8 +15,8 @@ from sonar.inference_pipelines import (
     SpeechToEmbeddingPipeline,
     SpeechToTextPipeline,
 )
-from sonar.models.sonar_speech.loader import load_sonar_speech_model
-from sonar.models.sonar_text import load_sonar_text_decoder_model, load_sonar_tokenizer
+from sonar.models.sonar_speech import get_sonar_speech_encoder_hub
+from sonar.models.sonar_text import get_sonar_text_decoder_hub
 from sonar.models.sonar_translation import SonarEncoderDecoderModel
 
 DEVICE = torch.device("cpu")
@@ -23,12 +24,16 @@ DATA_DIR = Path(__file__).parent.joinpath("data")
 
 
 class TestSonarTextClass:
-    encoder = load_sonar_speech_model("sonar_speech_encoder_eng", device=DEVICE).eval()
+    encoder_hub = get_sonar_speech_encoder_hub()
+    encoder = encoder_hub.load("sonar_speech_encoder_eng", device=DEVICE)
+    encoder.eval()
 
-    tokenizer = load_sonar_tokenizer("text_sonar_basic_encoder", progress=False)
-    decoder = load_sonar_text_decoder_model(
-        "text_sonar_basic_decoder", device=DEVICE, progress=False
-    ).eval()
+    tokenizer_hub = get_text_tokenizer_hub()
+    tokenizer = tokenizer_hub.load("text_sonar_basic_encoder")
+
+    decoder_hub = get_sonar_text_decoder_hub()
+    decoder = decoder_hub.load("text_sonar_basic_decoder", device=DEVICE)
+    decoder.eval()
 
     params = SpeechInferenceParams(
         data_file=DATA_DIR.joinpath("audio_ref.tsv"),

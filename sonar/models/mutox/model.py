@@ -4,10 +4,7 @@
 # This source code is licensed under the license found in the
 # MIT_LICENSE file in the root directory of this source tree.
 
-from dataclasses import dataclass
-
 import torch
-from fairseq2.config_registry import ConfigRegistry
 from torch import nn
 
 
@@ -26,14 +23,3 @@ class MutoxClassifier(nn.Module):
             outputs = torch.sigmoid(outputs)
 
         return outputs
-
-
-@dataclass
-class MutoxConfig:
-    """Holds the configuration of a Mutox Classifier model."""
-
-    # size of the input embedding supported by this model
-    input_size: int
-
-
-mutox_archs = ConfigRegistry[MutoxConfig]()

@@ -4,27 +4,52 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict
+from typing import Any, cast, final
 
 import torch
-from fairseq2.models.config_loader import StandardModelConfigLoader
-from fairseq2.models.loader import StandardModelLoader, load_model
-from fairseq2.models.nllb import load_nllb_tokenizer
+from fairseq2.models import AbstractModelHandler
 from fairseq2.models.utils.checkpoint import convert_fairseq_checkpoint
+from torch.nn import Module
+from typing_extensions import override
 
-from sonar.models.sonar_text.builder import (
+from sonar.models.sonar_text.config import (
     SonarTextDecoderConfig,
     SonarTextEncoderConfig,
-    create_sonar_text_decoder_model,
-    create_sonar_text_encoder_model,
-    sonar_text_decoder_archs,
-    sonar_text_encoder_archs,
 )
+from sonar.models.sonar_text.factory import (
+    SonarTextDecoderFactory,
+    SonarTextEncoderFactory,
+)
+from sonar.models.sonar_text.model import SonarTextTransformerEncoderModel
+from sonar.nn.conditional_decoder_model import ConditionalTransformerDecoderModel
 
 
-def convert_sonar_text_encoder_checkpoint(
-    checkpoint: Dict[str, Any], config: SonarTextEncoderConfig
-) -> Dict[str, Any]:
+@final
+class SonarTextEncoderHandler(AbstractModelHandler):
+    @override
+    @property
+    def family(self) -> str:
+        return "transformer_encoder"
+
+    @override
+    @property
+    def kls(self) -> type[Module]:
+        return SonarTextTransformerEncoderModel
+
+    @override
+    def _create_model(self, config: object) -> Module:
+        config = cast(SonarTextEncoderConfig, config)
+
+        return SonarTextEncoderFactory(config).create_model()
+
+    @override
+    def _convert_checkpoint(
+        self, checkpoint: dict[str, object], config: object
+    ) -> dict[str, object]:
+        return convert_sonar_text_encoder_checkpoint(checkpoint)
+
+
+def convert_sonar_text_encoder_checkpoint(checkpoint: dict[str, Any]) -> dict[str, Any]:
     # Return directly if found fairseq2 attribute in state dict
     if (
         "model" in checkpoint.keys()
@@ -69,25 +94,32 @@ def convert_sonar_text_encoder_checkpoint(
     return out_checkpoint
 
 
-load_sonar_text_encoder_config = StandardModelConfigLoader(
-    family="transformer_encoder",
-    config_kls=SonarTextEncoderConfig,
-    arch_configs=sonar_text_encoder_archs,
-)
+@final
+class SonarTextDecoderHandler(AbstractModelHandler):
+    @override
+    @property
+    def family(self) -> str:
+        return "transformer_decoder"
 
-load_sonar_text_encoder_model = StandardModelLoader(
-    config_loader=load_sonar_text_encoder_config,
-    factory=create_sonar_text_encoder_model,
-    checkpoint_converter=convert_sonar_text_encoder_checkpoint,
-    restrict_checkpoints=False,
-)
+    @override
+    @property
+    def kls(self) -> type[Module]:
+        return ConditionalTransformerDecoderModel
 
-load_model.register("transformer_encoder", load_sonar_text_encoder_model)
+    @override
+    def _create_model(self, config: object) -> Module:
+        config = cast(SonarTextDecoderConfig, config)
+
+        return SonarTextDecoderFactory(config).create_model()
+
+    @override
+    def _convert_checkpoint(
+        self, checkpoint: dict[str, object], config: object
+    ) -> dict[str, object]:
+        return convert_sonar_text_decoder_checkpoint(checkpoint)
 
 
-def convert_sonar_text_decoder_checkpoint(
-    checkpoint: Dict[str, Any], config: SonarTextDecoderConfig
-) -> Dict[str, Any]:
+def convert_sonar_text_decoder_checkpoint(checkpoint: dict[str, Any]) -> dict[str, Any]:
     # Return directly if found fairseq2 attribute in state dict
     if (
         "model" in checkpoint.keys()
@@ -128,6 +160,8 @@ def convert_sonar_text_decoder_checkpoint(
 
     out_checkpoint = convert_fairseq_checkpoint(out_checkpoint, key_map)
 
+    out_checkpoint = cast(dict[str, Any], out_checkpoint)
+
     embeds = out_checkpoint["model"]["decoder_frontend.embed.weight"]
     # # The embedding positions of the control tokens do not match the
     # # SentencePiece model of the tokenizer.
@@ -136,21 +170,3 @@ def convert_sonar_text_decoder_checkpoint(
         embeds[[0, 1, 2, 3]] = embeds[[1, 3, 0, 2]]
     out_checkpoint["model"]["decoder_frontend.embed.weight"] = embeds
     return out_checkpoint
-
-
-load_sonar_text_decoder_config = StandardModelConfigLoader(
-    family="transformer_decoder",
-    config_kls=SonarTextDecoderConfig,
-    arch_configs=sonar_text_decoder_archs,
-)
-
-load_sonar_text_decoder_model = StandardModelLoader(
-    config_loader=load_sonar_text_decoder_config,
-    factory=create_sonar_text_decoder_model,
-    checkpoint_converter=convert_sonar_text_decoder_checkpoint,
-    restrict_checkpoints=False,
-)
-
-load_model.register("transformer_decoder", load_sonar_text_decoder_model)
-
-load_sonar_tokenizer = load_nllb_tokenizer

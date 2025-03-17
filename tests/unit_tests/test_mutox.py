@@ -4,17 +4,18 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from typing import Dict
+
 import pytest
 import torch
 from torch import nn
 
-from sonar.models.mutox.builder import (
-    MutoxClassifierBuilder,
+from sonar.models.mutox import (
+    MutoxClassifier,
     MutoxConfig,
+    MutoxModelHandler,
     create_mutox_model,
 )
-from sonar.models.mutox.classifier import MutoxClassifier
-from sonar.models.mutox.loader import convert_mutox_checkpoint
 
 # Builder tests
 
@@ -25,8 +26,7 @@ from sonar.models.mutox.loader import convert_mutox_checkpoint
 def test_mutox_classifier_builder(input_size, device, dtype):
     """Test MutoxClassifierBuilder initializes a model with correct configuration and dtype."""
     config = MutoxConfig(input_size=input_size)
-    builder = MutoxClassifierBuilder(config, device=device, dtype=dtype)
-    model = builder.build_model()
+    model = create_mutox_model(config).to(device=device, dtype=dtype)
 
     # Check if model layers are correctly initialized with shapes
     assert isinstance(model, nn.Module), "Model should be an instance of nn.Module"
@@ -43,7 +43,7 @@ def test_mutox_classifier_builder(input_size, device, dtype):
 def test_create_mutox_model(input_size):
     """Test create_mutox_model function to confirm it creates a model with the specified config."""
     config = MutoxConfig(input_size=input_size)
-    model = create_mutox_model(config, device=torch.device("cpu"))
+    model = create_mutox_model(config).to(device=torch.device("cpu"))
 
     # Check if the created model has the expected structure and behavior
     test_input = torch.zeros((3, input_size))
@@ -114,7 +114,7 @@ def test_convert_mutox_checkpoint():
         "non_model_key": torch.tensor([3.0]),
     }
     config = MutoxConfig(input_size=1024)
-    converted = convert_mutox_checkpoint(checkpoint, config)
+    converted: Dict[str, torch.Tensor] = MutoxModelHandler._convert_checkpoint(None, checkpoint, config)  # type: ignore
 
     # Verify only 'model_all.' keys are retained in the converted dictionary
     assert "model" in converted, "Converted checkpoint should contain a 'model' key"

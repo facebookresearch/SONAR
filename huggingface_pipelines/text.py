@@ -333,9 +333,9 @@ class HFEmbeddingToTextPipeline(Pipeline):
                 ):
                     all_embeddings = np.asarray(embeddings, dtype=self.config.dtype)
                     all_decoded_texts = self.decode_embeddings(all_embeddings)
-                    batch[f"{column}_{self.config.output_column_suffix}"] = (
-                        all_decoded_texts
-                    )
+                    batch[
+                        f"{column}_{self.config.output_column_suffix}"
+                    ] = all_decoded_texts
                 elif all(isinstance(item, list) for item in embeddings):
                     all_embeddings = np.vstack(
                         [
@@ -351,9 +351,9 @@ class HFEmbeddingToTextPipeline(Pipeline):
                         all_decoded_texts[start:end]
                         for start, end in zip([0] + indices[:-1], indices)
                     ]
-                    batch[f"{column}_{self.config.output_column_suffix}"] = (
-                        reconstructed_texts
-                    )
+                    batch[
+                        f"{column}_{self.config.output_column_suffix}"
+                    ] = reconstructed_texts
                 else:
                     raise ValueError(f"Invalid input type for column {column}")
                     logger.debug(
@@ -490,9 +490,9 @@ class HFTextToEmbeddingPipeline(Pipeline):
                     # Case: List of individual strings
                     all_texts = batch[column]
                     all_embeddings = self.encode_texts(all_texts)
-                    batch[f"{column}_{self.config.output_column_suffix}"] = (
-                        all_embeddings
-                    )
+                    batch[
+                        f"{column}_{self.config.output_column_suffix}"
+                    ] = all_embeddings
                 elif all(isinstance(item, list) for item in batch[column]):
                     # Case: List of lists (sentences)
                     all_sentences = [
@@ -513,9 +513,9 @@ class HFTextToEmbeddingPipeline(Pipeline):
                         for start, end in zip([0] + indices[:-1], indices)
                     ]
 
-                    batch[f"{column}_{self.config.output_column_suffix}"] = (
-                        sentence_embeddings
-                    )
+                    batch[
+                        f"{column}_{self.config.output_column_suffix}"
+                    ] = sentence_embeddings
 
                 else:
                     raise ValueError(
@@ -554,10 +554,10 @@ class HFTextToEmbeddingPipeline(Pipeline):
                     batch_size=self.config.batch_size,
                     max_seq_len=self.config.max_seq_len,
                 )
-                batch_embeddings = (
+                batch_embeddings_np = (
                     batch_embeddings.detach().cpu().numpy().astype(self.config.dtype)
                 )
-                embeddings.extend(batch_embeddings)
+                embeddings.extend(batch_embeddings_np)
 
             return np.vstack(embeddings)
         except Exception as e:

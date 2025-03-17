@@ -16,10 +16,9 @@ from typing import Optional, Tuple
 from fairseq2.data import VocabularyInfo
 from fairseq2.models.encoder_decoder import EncoderDecoderModel
 from fairseq2.models.sequence import SequenceModelOutput
-from fairseq2.models.transformer.frontend import TransformerFrontend
-from fairseq2.nn.incremental_state import IncrementalStateBag
+from fairseq2.models.transformer import TransformerFrontend
+from fairseq2.nn import IncrementalStateBag, Projection
 from fairseq2.nn.padding import PaddingMask
-from fairseq2.nn.projection import Projection
 from fairseq2.nn.transformer import TransformerDecoder
 from torch import Tensor
 

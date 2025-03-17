@@ -9,8 +9,8 @@ from typing import Optional, final
 
 import torch
 from fairseq2.models.sequence import SequenceBatch
-from fairseq2.models.transformer.frontend import TransformerFrontend
-from fairseq2.nn.normalization import LayerNorm
+from fairseq2.models.transformer import TransformerFrontend
+from fairseq2.nn import LayerNorm
 from fairseq2.nn.padding import PaddingMask, apply_padding_mask
 from fairseq2.nn.transformer import TransformerEncoder
 from fairseq2.typing import override

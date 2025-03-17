@@ -8,7 +8,7 @@ import pytest
 import torch
 from torch.testing import assert_close
 
-from sonar.models.blaser.builder import BlaserConfig, create_blaser_model
+from sonar.models.blaser import BlaserConfig, create_blaser_model
 
 
 @pytest.mark.parametrize("embedding_dim", [32, 1024])

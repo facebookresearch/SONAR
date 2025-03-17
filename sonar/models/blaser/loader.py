@@ -4,33 +4,18 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict
+import fairseq2
 
-from fairseq2.models.config_loader import StandardModelConfigLoader
-from fairseq2.models.loader import StandardModelLoader, load_model
-
-from sonar.models.blaser.builder import BlaserConfig, blaser_archs, create_blaser_model
+from sonar.models.blaser import get_blaser_model_hub
+from sonar.models.blaser.model import BlaserModel
 
 
-def convert_blaser_checkpoint(
-    checkpoint: Dict[str, Any], config: BlaserConfig
-) -> Dict[str, Any]:
-    # Return directly if found fairseq2 attribute in state dict
-    if "model" in checkpoint.keys():
-        return checkpoint
-    # Othewise (the old checkpoint format), move the whole state dict to the "model" section
-    return {"model": checkpoint}
-
-
-load_blaser_config = StandardModelConfigLoader(
-    family="blaser", config_kls=BlaserConfig, arch_configs=blaser_archs
-)
-
-load_blaser_model = StandardModelLoader(
-    config_loader=load_blaser_config,
-    factory=create_blaser_model,
-    checkpoint_converter=convert_blaser_checkpoint,
-    restrict_checkpoints=False,
-)
-
-load_model.register("blaser", load_blaser_model)
+def load_blaser_model(model_name: str) -> BlaserModel:
+    """
+    This file exists purely for backward compatibility of the package interface!
+    Normally, the user is encouraged to call `setup_fairseq2` and `get_blaser_model_hub` on their own.
+    """
+    fairseq2.setup_fairseq2()
+    model_hub = get_blaser_model_hub()
+    model = model_hub.load(model_name)
+    return model

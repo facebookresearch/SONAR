@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 name: blaser_2_0_ref
-model_type: blaser  # compat
 model_family: blaser
 model_arch: basic_ref
 checkpoint: "https://huggingface.co/facebook/blaser-2.0-ref/resolve/main/model.pt"
@@ -13,7 +12,6 @@ checkpoint: "https://huggingface.co/facebook/blaser-2.0-ref/resolve/main/model.p
 ---
 
 name: blaser_2_0_qe
-model_type: blaser  # compat
 model_family: blaser
 model_arch: basic_qe
 checkpoint: "https://huggingface.co/facebook/blaser-2.0-qe/resolve/main/model.pt"
