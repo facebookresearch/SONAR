@@ -104,7 +104,6 @@ jobs:
         run: |
           sudo apt-get install libsndfile1
           python -m pip install --upgrade pip
-          pip install --extra-index-url https://fair.pkg.atmeta.com/fairseq2/whl/pt2.5.1/cpu -r requirements.txt
           pip install -r requirements-dev.txt
           pip install -e .
       - name: Free Disk Space (Ubuntu)
