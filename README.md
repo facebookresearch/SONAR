@@ -251,9 +251,11 @@ The SONAR text encoder & decoder supports 200 languages. SONAR speech encoders s
 | finetuned decoder | [download](https://dl.fbaipublicfiles.com/SONAR/finetuned_decoder.pt)              |
 | tokenizer         | [download](https://dl.fbaipublicfiles.com/SONAR/sentencepiece.source.256000.model) |
 
-All 202 languages from the NLLB-200 models are supported
-(and all 204 [FLORES-200 languages](https://github.com/facebookresearch/flores/tree/main/flores200), except `arb_Latn` and `min_Arab`).
-See more details on the languages in the [No Language Left Behind paper](https://arxiv.org/abs/2207.04672):
+The languages supported by SONAR text encoders/decoders are all the 202 languages from the NLLB-200 models.
+They comprise all 204 [FLORES-200 languages](https://github.com/facebookresearch/flores/tree/main/flores200), 
+except `arb_Latn` and `min_Arab` (note that `sat_Olck` is supported under the name `sat_Beng`, alghough `Olck` is the right scripts).
+See more details on the languages list in the [No Language Left Behind paper](https://arxiv.org/abs/2207.04672) 
+(the table below is based on Table 1 in this paper):
 
 | flores_lang_code   | sonar_lang_code   | lang_name               | script            | family          | subgrouping             | resource_level   | variety                    |
 |:-------------------|:------------------|:------------------------|:------------------|:----------------|:------------------------|:-----------------|:---------------------------|
