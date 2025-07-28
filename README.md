@@ -247,7 +247,7 @@ The SONAR text encoder & decoder supports 200 languages. SONAR speech encoders s
 | model             | link                                                                               |
 | ----------------- | ---------------------------------------------------------------------------------- |
 | encoder           | [download](https://dl.fbaipublicfiles.com/SONAR/sonar_text_encoder.pt)             |
-| decoder           | [download](https://dl.fbaipublicfiles.com/SONAR/sonar_text_encoder.pt)             |
+| decoder           | [download](https://dl.fbaipublicfiles.com/SONAR/sonar_text_decoder.pt)             |
 | finetuned decoder | [download](https://dl.fbaipublicfiles.com/SONAR/finetuned_decoder.pt)              |
 | tokenizer         | [download](https://dl.fbaipublicfiles.com/SONAR/sentencepiece.source.256000.model) |
 
