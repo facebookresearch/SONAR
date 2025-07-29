@@ -251,7 +251,219 @@ The SONAR text encoder & decoder supports 200 languages. SONAR speech encoders s
 | finetuned decoder | [download](https://dl.fbaipublicfiles.com/SONAR/finetuned_decoder.pt)              |
 | tokenizer         | [download](https://dl.fbaipublicfiles.com/SONAR/sentencepiece.source.256000.model) |
 
-All 200 languages from the [No Language Left Behind project](https://arxiv.org/abs/2207.04672) are supported.
+The languages supported by SONAR text encoders/decoders are all the 202 languages from the NLLB-200 models.
+They comprise all 204 [FLORES-200 languages](https://github.com/facebookresearch/flores/tree/main/flores200), 
+except `arb_Latn` and `min_Arab` (note that `sat_Olck` is supported under the name `sat_Beng`, alghough `Olck` is the right scripts).
+
+See more details on the languages list in the [No Language Left Behind paper](https://arxiv.org/abs/2207.04672) 
+(the table below is based on Table 1 in this paper):
+
+| flores_lang_code   | sonar_lang_code   | lang_name               | script            | family          | subgrouping             | resource_level   | variety                    |
+|:-------------------|:------------------|:------------------------|:------------------|:----------------|:------------------------|:-----------------|:---------------------------|
+| ace_Arab           | ace_Arab          | Acehnese                | Arabic            | Austronesian    | Malayo-Polynesian       | Low              | North Acehnese             |
+| ace_Latn           | ace_Latn          | Acehnese                | Latin             | Austronesian    | Malayo-Polynesian       | Low              | North Acehnese             |
+| acm_Arab           | acm_Arab          | Mesopotamian Arabic     | Arabic            | Afro-Asiatic    | Semitic                 | Low              | Baghdadi                   |
+| acq_Arab           | acq_Arab          | Taʽizzi-Adeni Arabic    | Arabic            | Afro-Asiatic    | Semitic                 | Low              |                            |
+| aeb_Arab           | aeb_Arab          | Tunisian Arabic         | Arabic            | Afro-Asiatic    | Semitic                 | Low              | Derja                      |
+| afr_Latn           | afr_Latn          | Afrikaans               | Latin             | Indo-European   | Germanic                | High             |                            |
+| ajp_Arab           | ajp_Arab          | South Levantine Arabic  | Arabic            | Afro-Asiatic    | Semitic                 | Low              | Ammani                     |
+| aka_Latn           | aka_Latn          | Akan                    | Latin             | Atlantic-Congo  | Kwa Volta-Congo         | Low              | Asante                     |
+| amh_Ethi           | amh_Ethi          | Amharic                 | Geʽez             | Afro-Asiatic    | Semitic                 | Low              | Addis Ababa                |
+| apc_Arab           | apc_Arab          | North Levantine Arabic  | Arabic            | Afro-Asiatic    | Semitic                 | Low              |                            |
+| arb_Arab           | arb_Arab          | Modern Standard Arabic  | Arabic            | Afro-Asiatic    | Semitic                 | High             |                            |
+| arb_Latn           | -                 | Modern Standard Arabic  | Latin             | Afro-Asiatic    | Semitic                 | Low              |                            |
+| ars_Arab           | ars_Arab          | Najdi Arabic            | Arabic            | Afro-Asiatic    | Semitic                 | Low              |                            |
+| ary_Arab           | ary_Arab          | Moroccan Arabic         | Arabic            | Afro-Asiatic    | Semitic                 | Low              |                            |
+| arz_Arab           | arz_Arab          | Egyptian Arabic         | Arabic            | Afro-Asiatic    | Semitic                 | Low              |                            |
+| asm_Beng           | asm_Beng          | Assamese                | Bengali           | Indo-European   | Indo-Aryan              | Low              | Eastern                    |
+| ast_Latn           | ast_Latn          | Asturian                | Latin             | Indo-European   | Italic                  | Low              | Central                    |
+| awa_Deva           | awa_Deva          | Awadhi                  | Devanagari        | Indo-European   | Indo-Aryan              | Low              | Ayodhya                    |
+| ayr_Latn           | ayr_Latn          | Central Aymara          | Latin             | Aymaran         | Central Southern Aymara | Low              | Aymara La Paz jilata       |
+| azb_Arab           | azb_Arab          | South Azerbaijani       | Arabic            | Turkic          | Common Turkic           | Low              | Tabrizi                    |
+| azj_Latn           | azj_Latn          | North Azerbaijani       | Latin             | Turkic          | Common Turkic           | Low              | Shirvan                    |
+| bak_Cyrl           | bak_Cyrl          | Bashkir                 | Cyrillic          | Turkic          | Common Turkic           | Low              | Literary                   |
+| bam_Latn           | bam_Latn          | Bambara                 | Latin             | Mande           | Western Mande           | Low              |                            |
+| ban_Latn           | ban_Latn          | Balinese                | Latin             | Austronesian    | Malayo-Polynesian       | Low              |                            |
+| bel_Cyrl           | bel_Cyrl          | Belarusian              | Cyrillic          | Indo-European   | Balto-Slavic            | Low              | Central                    |
+| bem_Latn           | bem_Latn          | Bemba                   | Latin             | Atlantic-Congo  | Benue-Congo             | Low              | Central                    |
+| ben_Beng           | ben_Beng          | Bengali                 | Bengali           | Indo-European   | Indo-Aryan              | High             | Rarhi                      |
+| bho_Deva           | bho_Deva          | Bhojpuri                | Devanagari        | Indo-European   | Indo-Aryan              | Low              |                            |
+| bjn_Arab           | bjn_Arab          | Banjar                  | Arabic            | Austronesian    | Malayo-Polynesian       | Low              | Banjar Kuala               |
+| bjn_Latn           | bjn_Latn          | Banjar                  | Latin             | Austronesian    | Malayo-Polynesian       | Low              | Banjar Kuala               |
+| bod_Tibt           | bod_Tibt          | Standard Tibetan        | Tibetan           | Sino-Tibetan    | Bodic                   | Low              | Lhasa                      |
+| bos_Latn           | bos_Latn          | Bosnian                 | Latin             | Indo-European   | Balto-Slavic            | High             |                            |
+| bug_Latn           | bug_Latn          | Buginese                | Latin             | Austronesian    | Malayo-Polynesian       | Low              | Bone                       |
+| bul_Cyrl           | bul_Cyrl          | Bulgarian               | Cyrillic          | Indo-European   | Balto-Slavic            | High             |                            |
+| cat_Latn           | cat_Latn          | Catalan                 | Latin             | Indo-European   | Italic                  | High             |                            |
+| ceb_Latn           | ceb_Latn          | Cebuano                 | Latin             | Austronesian    | Malayo-Polynesian       | Low              |                            |
+| ces_Latn           | ces_Latn          | Czech                   | Latin             | Indo-European   | Balto-Slavic            | High             |                            |
+| cjk_Latn           | cjk_Latn          | Chokwe                  | Latin             | Atlantic-Congo  | Benue-Congo             | Low              |                            |
+| ckb_Arab           | ckb_Arab          | Central Kurdish         | Arabic            | Indo-European   | Iranian                 | Low              |                            |
+| crh_Latn           | crh_Latn          | Crimean Tatar           | Latin             | Turkic          | Common Turkic           | Low              |                            |
+| cym_Latn           | cym_Latn          | Welsh                   | Latin             | Indo-European   | Celtic                  | Low              | Y Wyndodeg                 |
+| dan_Latn           | dan_Latn          | Danish                  | Latin             | Indo-European   | Germanic                | High             |                            |
+| deu_Latn           | deu_Latn          | German                  | Latin             | Indo-European   | Germanic                | High             |                            |
+| dik_Latn           | dik_Latn          | Southwestern Dinka      | Latin             | Nilotic         | Western Nilotic         | Low              | Rek                        |
+| dyu_Latn           | dyu_Latn          | Dyula                   | Latin             | Mande           | Western Mande           | Low              |                            |
+| dzo_Tibt           | dzo_Tibt          | Dzongkha                | Tibetan           | Sino-Tibetan    | Bodic                   | Low              |                            |
+| ell_Grek           | ell_Grek          | Greek                   | Greek             | Indo-European   | Graeco-Phrygian         | High             |                            |
+| eng_Latn           | eng_Latn          | English                 | Latin             | Indo-European   | Germanic                | High             |                            |
+| epo_Latn           | epo_Latn          | Esperanto               | Latin             | Constructed     | Esperantic              | Low              |                            |
+| est_Latn           | est_Latn          | Estonian                | Latin             | Uralic          | Finnic                  | High             |                            |
+| eus_Latn           | eus_Latn          | Basque                  | Latin             | Basque          | –                       | High             |                            |
+| ewe_Latn           | ewe_Latn          | Ewe                     | Latin             | Atlantic-Congo  | Kwa Volta-Congo         | Low              | Aŋlo                       |
+| fao_Latn           | fao_Latn          | Faroese                 | Latin             | Indo-European   | Germanic                | Low              |                            |
+| fij_Latn           | fij_Latn          | Fijian                  | Latin             | Austronesian    | Malayo-Polynesian       | Low              | Bau                        |
+| fin_Latn           | fin_Latn          | Finnish                 | Latin             | Uralic          | Finnic                  | High             |                            |
+| fon_Latn           | fon_Latn          | Fon                     | Latin             | Atlantic-Congo  | Kwa Volta-Congo         | Low              |                            |
+| fra_Latn           | fra_Latn          | French                  | Latin             | Indo-European   | Italic                  | High             |                            |
+| fur_Latn           | fur_Latn          | Friulian                | Latin             | Indo-European   | Italic                  | Low              | Central                    |
+| fuv_Latn           | fuv_Latn          | Nigerian Fulfulde       | Latin             | Atlantic-Congo  | North-Central Atlantic  | Low              | Sokoto                     |
+| gla_Latn           | gla_Latn          | Scottish Gaelic         | Latin             | Indo-European   | Celtic                  | Low              | Northern Hebrides          |
+| gle_Latn           | gle_Latn          | Irish                   | Latin             | Indo-European   | Celtic                  | Low              |                            |
+| glg_Latn           | glg_Latn          | Galician                | Latin             | Indo-European   | Italic                  | Low              |                            |
+| grn_Latn           | grn_Latn          | Guarani                 | Latin             | Tupian          | Maweti-Guarani          | Low              |                            |
+| guj_Gujr           | guj_Gujr          | Gujarati                | Gujarati          | Indo-European   | Indo-Aryan              | Low              | Amdavadi/Surti             |
+| hat_Latn           | hat_Latn          | Haitian Creole          | Latin             | Indo-European   | Italic                  | Low              |                            |
+| hau_Latn           | hau_Latn          | Hausa                   | Latin             | Afro-Asiatic    | Chadic                  | Low              |                            |
+| heb_Hebr           | heb_Hebr          | Hebrew                  | Hebrew            | Afro-Asiatic    | Semitic                 | High             |                            |
+| hin_Deva           | hin_Deva          | Hindi                   | Devanagari        | Indo-European   | Indo-Aryan              | High             |                            |
+| hne_Deva           | hne_Deva          | Chhattisgarhi           | Devanagari        | Indo-European   | Indo-Aryan              | Low              |                            |
+| hrv_Latn           | hrv_Latn          | Croatian                | Latin             | Indo-European   | Balto-Slavic            | High             |                            |
+| hun_Latn           | hun_Latn          | Hungarian               | Latin             | Uralic          | –                       | High             |                            |
+| hye_Armn           | hye_Armn          | Armenian                | Armenian          | Indo-European   | Armenic                 | Low              | Yerevan                    |
+| ibo_Latn           | ibo_Latn          | Igbo                    | Latin             | Atlantic-Congo  | Benue-Congo             | Low              | Central                    |
+| ilo_Latn           | ilo_Latn          | Ilocano                 | Latin             | Austronesian    | Malayo-Polynesian       | Low              |                            |
+| ind_Latn           | ind_Latn          | Indonesian              | Latin             | Austronesian    | Malayo-Polynesian       | High             |                            |
+| isl_Latn           | isl_Latn          | Icelandic               | Latin             | Indo-European   | Germanic                | High             |                            |
+| ita_Latn           | ita_Latn          | Italian                 | Latin             | Indo-European   | Italic                  | High             |                            |
+| jav_Latn           | jav_Latn          | Javanese                | Latin             | Austronesian    | Malayo-Polynesian       | Low              |                            |
+| jpn_Jpan           | jpn_Jpan          | Japanese                | Japanese          | Japonic         | Japanesic               | High             |                            |
+| kab_Latn           | kab_Latn          | Kabyle                  | Latin             | Afro-Asiatic    | Berber                  | Low              | North Eastern              |
+| kac_Latn           | kac_Latn          | Jingpho                 | Latin             | Sino-Tibetan    | Brahmaputran            | Low              |                            |
+| kam_Latn           | kam_Latn          | Kamba                   | Latin             | Atlantic-Congo  | Benue-Congo             | Low              | Machakos                   |
+| kan_Knda           | kan_Knda          | Kannada                 | Kannada           | Dravidian       | South Dravidian         | Low              | Central                    |
+| kas_Arab           | kas_Arab          | Kashmiri                | Arabic            | Indo-European   | Indo-Aryan              | Low              | Kishtwari                  |
+| kas_Deva           | kas_Deva          | Kashmiri                | Devanagari        | Indo-European   | Indo-Aryan              | Low              | Kishtwari                  |
+| kat_Geor           | kat_Geor          | Georgian                | Georgian          | Kartvelian      | Georgian-Zan            | Low              | Kartlian                   |
+| knc_Arab           | knc_Arab          | Central Kanuri          | Arabic            | Saharan         | Western Saharan         | Low              | Yerwa                      |
+| knc_Latn           | knc_Latn          | Central Kanuri          | Latin             | Saharan         | Western Saharan         | Low              | Yerwa                      |
+| kaz_Cyrl           | kaz_Cyrl          | Kazakh                  | Cyrillic          | Turkic          | Common Turkic           | High             |                            |
+| kbp_Latn           | kbp_Latn          | Kabiyè                  | Latin             | Atlantic-Congo  | North Volta-Congo       | Low              | Kɛ̀̀wɛ                       |
+| kea_Latn           | kea_Latn          | Kabuverdianu            | Latin             | Indo-European   | Italic                  | Low              | Sotavento                  |
+| khm_Khmr           | khm_Khmr          | Khmer                   | Khmer             | Austroasiatic   | Khmeric                 | Low              | Central                    |
+| kik_Latn           | kik_Latn          | Kikuyu                  | Latin             | Atlantic-Congo  | Benue-Congo             | Low              | Southern                   |
+| kin_Latn           | kin_Latn          | Kinyarwanda             | Latin             | Atlantic-Congo  | Benue-Congo             | Low              |                            |
+| kir_Cyrl           | kir_Cyrl          | Kyrgyz                  | Cyrillic          | Turkic          | Common Turkic           | Low              | Northern                   |
+| kmb_Latn           | kmb_Latn          | Kimbundu                | Latin             | Atlantic-Congo  | Benue-Congo             | Low              |                            |
+| kmr_Latn           | kmr_Latn          | Northern Kurdish        | Latin             | Indo-European   | Iranian                 | Low              |                            |
+| kon_Latn           | kon_Latn          | Kikongo                 | Latin             | Atlantic-Congo  | Benue-Congo             | Low              |                            |
+| kor_Hang           | kor_Hang          | Korean                  | Hangul            | Koreanic        | Korean                  | High             |                            |
+| lao_Laoo           | lao_Laoo          | Lao                     | Lao               | Tai-Kadai       | Kam-Tai                 | Low              | Vientiane                  |
+| lij_Latn           | lij_Latn          | Ligurian                | Latin             | Indo-European   | Italic                  | Low              | Zeneise                    |
+| lim_Latn           | lim_Latn          | Limburgish              | Latin             | Indo-European   | Germanic                | Low              | Maastrichtian              |
+| lin_Latn           | lin_Latn          | Lingala                 | Latin             | Atlantic-Congo  | Benue-Congo             | Low              |                            |
+| lit_Latn           | lit_Latn          | Lithuanian              | Latin             | Indo-European   | Balto-Slavic            | High             |                            |
+| lmo_Latn           | lmo_Latn          | Lombard                 | Latin             | Indo-European   | Italic                  | Low              | Western                    |
+| ltg_Latn           | ltg_Latn          | Latgalian               | Latin             | Indo-European   | Balto-Slavic            | Low              | Central                    |
+| ltz_Latn           | ltz_Latn          | Luxembourgish           | Latin             | Indo-European   | Germanic                | Low              |                            |
+| lua_Latn           | lua_Latn          | Luba-Kasai              | Latin             | Atlantic-Congo  | Benue-Congo             | Low              |                            |
+| lug_Latn           | lug_Latn          | Ganda                   | Latin             | Atlantic-Congo  | Benue-Congo             | Low              |                            |
+| luo_Latn           | luo_Latn          | Luo                     | Latin             | Nilotic         | Western Nilotic         | Low              |                            |
+| lus_Latn           | lus_Latn          | Mizo                    | Latin             | Sino-Tibetan    | Kuki-Chin-Naga          | Low              | Aizawl                     |
+| lvs_Latn           | lvs_Latn          | Standard Latvian        | Latin             | Indo-European   | Balto-Slavic            | High             |                            |
+| mag_Deva           | mag_Deva          | Magahi                  | Devanagari        | Indo-European   | Indo-Aryan              | Low              | Gaya                       |
+| mai_Deva           | mai_Deva          | Maithili                | Devanagari        | Indo-European   | Indo-Aryan              | Low              |                            |
+| mal_Mlym           | mal_Mlym          | Malayalam               | Malayalam         | Dravidian       | South Dravidian         | Low              |                            |
+| mar_Deva           | mar_Deva          | Marathi                 | Devanagari        | Indo-European   | Indo-Aryan              | Low              | Varhadi                    |
+| min_Arab           | -                 | Minangkabau             | Arabic            | Austronesian    | Malayo-Polynesian       | Low              | Agam-Tanah Datar           |
+| min_Latn           | min_Latn          | Minangkabau             | Latin             | Austronesian    | Malayo-Polynesian       | Low              | Agam-Tanah Datar           |
+| mkd_Cyrl           | mkd_Cyrl          | Macedonian              | Cyrillic          | Indo-European   | Balto-Slavic            | High             |                            |
+| plt_Latn           | plt_Latn          | Plateau Malagasy        | Latin             | Austronesian    | Malayo-Polynesian       | Low              | Merina                     |
+| mlt_Latn           | mlt_Latn          | Maltese                 | Latin             | Afro-Asiatic    | Semitic                 | High             |                            |
+| mni_Beng           | mni_Beng          | Meitei                  | Bengali           | Sino-Tibetan    | Kuki-Chin-Naga          | Low              |                            |
+| khk_Cyrl           | khk_Cyrl          | Halh Mongolian          | Cyrillic          | Mongolic-Khitan | Mongolic                | Low              |                            |
+| mos_Latn           | mos_Latn          | Mossi                   | Latin             | Atlantic-Congo  | North Volta-Congo       | Low              | Ouagadougou                |
+| mri_Latn           | mri_Latn          | Maori                   | Latin             | Austronesian    | Malayo-Polynesian       | Low              | Waikato-Ngapuhi            |
+| mya_Mymr           | mya_Mymr          | Burmese                 | Myanmar           | Sino-Tibetan    | Burmo-Qiangic           | Low              | Mandalay-Yangon            |
+| nld_Latn           | nld_Latn          | Dutch                   | Latin             | Indo-European   | Germanic                | High             |                            |
+| nno_Latn           | nno_Latn          | Norwegian Nynorsk       | Latin             | Indo-European   | Germanic                | Low              |                            |
+| nob_Latn           | nob_Latn          | Norwegian Bokmål        | Latin             | Indo-European   | Germanic                | Low              |                            |
+| npi_Deva           | npi_Deva          | Nepali                  | Devanagari        | Indo-European   | Indo-Aryan              | Low              | Eastern                    |
+| nso_Latn           | nso_Latn          | Northern Sotho          | Latin             | Atlantic-Congo  | Benue-Congo             | Low              |                            |
+| nus_Latn           | nus_Latn          | Nuer                    | Latin             | Nilotic         | Western Nilotic         | Low              |                            |
+| nya_Latn           | nya_Latn          | Nyanja                  | Latin             | Atlantic-Congo  | Benue-Congo             | Low              |                            |
+| oci_Latn           | oci_Latn          | Occitan                 | Latin             | Indo-European   | Italic                  | Low              |                            |
+| gaz_Latn           | gaz_Latn          | West Central Oromo      | Latin             | Afro-Asiatic    | Cushitic                | Low              |                            |
+| ory_Orya           | ory_Orya          | Odia                    | Oriya             | Indo-European   | Indo-Aryan              | Low              | Baleswari (Northern)       |
+| pag_Latn           | pag_Latn          | Pangasinan              | Latin             | Austronesian    | Malayo-Polynesian       | Low              |                            |
+| pan_Guru           | pan_Guru          | Eastern Panjabi         | Gurmukhi          | Indo-European   | Indo-Aryan              | Low              | Majhi                      |
+| pap_Latn           | pap_Latn          | Papiamento              | Latin             | Indo-European   | Italic                  | Low              | Römer-Maduro-Jonis         |
+| pes_Arab           | pes_Arab          | Western Persian         | Arabic            | Indo-European   | Iranian                 | High             |                            |
+| pol_Latn           | pol_Latn          | Polish                  | Latin             | Indo-European   | Balto-Slavic            | High             |                            |
+| por_Latn           | por_Latn          | Portuguese              | Latin             | Indo-European   | Italic                  | High             | Brazil                     |
+| prs_Arab           | prs_Arab          | Dari                    | Arabic            | Indo-European   | Iranian                 | Low              | Kabuli                     |
+| pbt_Arab           | pbt_Arab          | Southern Pashto         | Arabic            | Indo-European   | Iranian                 | Low              | Literary                   |
+| quy_Latn           | quy_Latn          | Ayacucho Quechua        | Latin             | Quechuan        | Chinchay                | Low              | Southern Quechua           |
+| ron_Latn           | ron_Latn          | Romanian                | Latin             | Indo-European   | Italic                  | High             |                            |
+| run_Latn           | run_Latn          | Rundi                   | Latin             | Atlantic-Congo  | Benue-Congo             | Low              |                            |
+| rus_Cyrl           | rus_Cyrl          | Russian                 | Cyrillic          | Indo-European   | Balto-Slavic            | High             |                            |
+| sag_Latn           | sag_Latn          | Sango                   | Latin             | Atlantic-Congo  | North Volta-Congo       | Low              |                            |
+| san_Deva           | san_Deva          | Sanskrit                | Devanagari        | Indo-European   | Indo-Aryan              | Low              |                            |
+| sat_Olck           | sat_Beng          | Santali                 | Ol Chiki          | Austroasiatic   | Mundaic                 | Low              |                            |
+| scn_Latn           | scn_Latn          | Sicilian                | Latin             | Indo-European   | Italic                  | Low              | Literary Sicilian          |
+| shn_Mymr           | shn_Mymr          | Shan                    | Myanmar           | Tai-Kadai       | Kam-Tai                 | Low              |                            |
+| sin_Sinh           | sin_Sinh          | Sinhala                 | Sinhala           | Indo-European   | Indo-Aryan              | Low              |                            |
+| slk_Latn           | slk_Latn          | Slovak                  | Latin             | Indo-European   | Balto-Slavic            | High             |                            |
+| slv_Latn           | slv_Latn          | Slovenian               | Latin             | Indo-European   | Balto-Slavic            | High             |                            |
+| smo_Latn           | smo_Latn          | Samoan                  | Latin             | Austronesian    | Malayo-Polynesian       | Low              |                            |
+| sna_Latn           | sna_Latn          | Shona                   | Latin             | Atlantic-Congo  | Benue-Congo             | Low              |                            |
+| snd_Arab           | snd_Arab          | Sindhi                  | Arabic            | Indo-European   | Indo-Aryan              | Low              | Vicholi                    |
+| som_Latn           | som_Latn          | Somali                  | Latin             | Afro-Asiatic    | Cushitic                | Low              | Nsom                       |
+| sot_Latn           | sot_Latn          | Southern Sotho          | Latin             | Atlantic-Congo  | Benue-Congo             | High             |                            |
+| spa_Latn           | spa_Latn          | Spanish                 | Latin             | Indo-European   | Italic                  | High             | Latin American             |
+| als_Latn           | als_Latn          | Tosk Albanian           | Latin             | Indo-European   | Albanian                | High             |                            |
+| srd_Latn           | srd_Latn          | Sardinian               | Latin             | Indo-European   | Italic                  | Low              | Logudorese and Campidanese |
+| srp_Cyrl           | srp_Cyrl          | Serbian                 | Cyrillic          | Indo-European   | Balto-Slavic            | Low              |                            |
+| ssw_Latn           | ssw_Latn          | Swati                   | Latin             | Atlantic-Congo  | Benue-Congo             | Low              |                            |
+| sun_Latn           | sun_Latn          | Sundanese               | Latin             | Austronesian    | Malayo-Polynesian       | Low              |                            |
+| swe_Latn           | swe_Latn          | Swedish                 | Latin             | Indo-European   | Germanic                | High             |                            |
+| swh_Latn           | swh_Latn          | Swahili                 | Latin             | Atlantic-Congo  | Benue-Congo             | High             | Kiunguja                   |
+| szl_Latn           | szl_Latn          | Silesian                | Latin             | Indo-European   | Balto-Slavic            | Low              |                            |
+| tam_Taml           | tam_Taml          | Tamil                   | Tamil             | Dravidian       | South Dravidian         | Low              | Chennai                    |
+| tat_Cyrl           | tat_Cyrl          | Tatar                   | Cyrillic          | Turkic          | Common Turkic           | Low              | Central and Middle         |
+| tel_Telu           | tel_Telu          | Telugu                  | Telugu            | Dravidian       | South Dravidian         | Low              | Coastal                    |
+| tgk_Cyrl           | tgk_Cyrl          | Tajik                   | Cyrillic          | Indo-European   | Iranian                 | Low              |                            |
+| tgl_Latn           | tgl_Latn          | Tagalog                 | Latin             | Austronesian    | Malayo-Polynesian       | High             |                            |
+| tha_Thai           | tha_Thai          | Thai                    | Thai              | Tai-Kadai       | Kam-Tai                 | High             |                            |
+| tir_Ethi           | tir_Ethi          | Tigrinya                | Geʽez             | Afro-Asiatic    | Semitic                 | Low              |                            |
+| taq_Latn           | taq_Latn          | Tamasheq                | Latin             | Afro-Asiatic    | Berber                  | Low              | Kal Ansar                  |
+| taq_Tfng           | taq_Tfng          | Tamasheq                | Tifinagh          | Afro-Asiatic    | Berber                  | Low              | Kal Ansar                  |
+| tpi_Latn           | tpi_Latn          | Tok Pisin               | Latin             | Indo-European   | Germanic                | Low              |                            |
+| tsn_Latn           | tsn_Latn          | Tswana                  | Latin             | Atlantic-Congo  | Benue-Congo             | High             | Sehurutshe                 |
+| tso_Latn           | tso_Latn          | Tsonga                  | Latin             | Atlantic-Congo  | Benue-Congo             | Low              |                            |
+| tuk_Latn           | tuk_Latn          | Turkmen                 | Latin             | Turkic          | Common Turkic           | Low              | Teke                       |
+| tum_Latn           | tum_Latn          | Tumbuka                 | Latin             | Atlantic-Congo  | Benue-Congo             | Low              | Rumphi                     |
+| tur_Latn           | tur_Latn          | Turkish                 | Latin             | Turkic          | Common Turkic           | High             |                            |
+| twi_Latn           | twi_Latn          | Twi                     | Latin             | Atlantic-Congo  | Kwa Volta-Congo         | Low              | Akuapem                    |
+| tzm_Tfng           | tzm_Tfng          | Central Atlas Tamazight | Tifinagh          | Afro-Asiatic    | Berber                  | Low              |                            |
+| uig_Arab           | uig_Arab          | Uyghur                  | Arabic            | Turkic          | Common Turkic           | Low              |                            |
+| ukr_Cyrl           | ukr_Cyrl          | Ukrainian               | Cyrillic          | Indo-European   | Balto-Slavic            | High             |                            |
+| umb_Latn           | umb_Latn          | Umbundu                 | Latin             | Atlantic-Congo  | Benue-Congo             | Low              |                            |
+| urd_Arab           | urd_Arab          | Urdu                    | Arabic            | Indo-European   | Indo-Aryan              | Low              | Lashkari                   |
+| uzn_Latn           | uzn_Latn          | Northern Uzbek          | Latin             | Turkic          | Common Turkic           | High             |                            |
+| vec_Latn           | vec_Latn          | Venetian                | Latin             | Indo-European   | Italic                  | Low              | Venice                     |
+| vie_Latn           | vie_Latn          | Vietnamese              | Latin             | Austroasiatic   | Vietic                  | High             |                            |
+| war_Latn           | war_Latn          | Waray                   | Latin             | Austronesian    | Malayo-Polynesian       | Low              | Tacloban                   |
+| wol_Latn           | wol_Latn          | Wolof                   | Latin             | Atlantic-Congo  | North-Central Atlantic  | Low              | Dakkar                     |
+| xho_Latn           | xho_Latn          | Xhosa                   | Latin             | Atlantic-Congo  | Benue-Congo             | High             | Ngqika                     |
+| ydd_Hebr           | ydd_Hebr          | Eastern Yiddish         | Hebrew            | Indo-European   | Germanic                | Low              | Hasidic                    |
+| yor_Latn           | yor_Latn          | Yoruba                  | Latin             | Atlantic-Congo  | Benue-Congo             | Low              | Ọyọ and Ibadan             |
+| yue_Hant           | yue_Hant          | Yue Chinese             | Han (Traditional) | Sino-Tibetan    | Sinitic                 | Low              |                            |
+| zho_Hans           | zho_Hans          | Chinese                 | Han (Simplified)  | Sino-Tibetan    | Sinitic                 | High             |                            |
+| zho_Hant           | zho_Hant          | Chinese                 | Han (Traditional) | Sino-Tibetan    | Sinitic                 | High             |                            |
+| zsm_Latn           | zsm_Latn          | Standard Malay          | Latin             | Austronesian    | Malayo-Polynesian       | High             |                            |
+| zul_Latn           | zul_Latn          | Zulu                    | Latin             | Atlantic-Congo  | Benue-Congo             | High             |                            |
 
 </details>
 
