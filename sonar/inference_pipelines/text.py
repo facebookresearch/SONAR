@@ -174,7 +174,7 @@ class TextToEmbeddingModelPipeline(torch.nn.Module):
     def predict(
         self,
         input: Union[Path, Sequence[str]],
-        source_lang: Union[Path, Sequence[str]],
+        source_lang: Union[str, Sequence[str]],
         batch_size: Optional[int] = 5,
         batch_max_tokens: Optional[int] = None,
         max_seq_len: Optional[int] = None,
@@ -201,15 +201,17 @@ class TextToEmbeddingModelPipeline(torch.nn.Module):
                 lang=source_lang,
                 device=self.device,
             )
+
             def encode_fn(text: str):
                 return tokenizer_encoder(text)
+
         else:
             # Multiple languages
             def encode_fn(x: tuple[str, str]):
                 text, lang = x
                 tokenizer_encoder = self.tokenizer.create_encoder(
-                lang=lang,
-                device=self.device,
+                    lang=lang,
+                    device=self.device,
                 )
                 return tokenizer_encoder(text)
 
@@ -245,21 +247,25 @@ class TextToEmbeddingModelPipeline(torch.nn.Module):
                 items = input
             else:
                 if len(input) != len(source_lang):
-                    raise ValueError(
-                        "Length of input and source_lang must match."
-                    )
+                    raise ValueError("Length of input and source_lang must match.")
                 items = list(zip(input, source_lang))
             sorting_index = torch.argsort(
-                torch.tensor(list(map(
-                    lambda x: len(x[0])
-                    if not isinstance(source_lang, str)
-                    else len(x),
-                    items
-                )))
+                torch.tensor(
+                    list(
+                        map(
+                            lambda x: (
+                                len(x[0])
+                                if not isinstance(source_lang, str)
+                                else len(x)
+                            ),
+                            items,
+                        )
+                    )
+                )
             )
-            pipeline_builder = read_sequence(
-                list(sorting_index.cpu())
-            ).map(items.__getitem__)
+            pipeline_builder = read_sequence(list(sorting_index.cpu())).map(
+                items.__getitem__
+            )
 
         pipeline: Iterable = (
             pipeline_builder.map(encode_fn)
@@ -339,7 +345,7 @@ class EmbeddingToTextModelPipeline(torch.nn.Module):
     def predict(
         self,
         inputs: torch.Tensor,
-        target_lang: Sequence[str],
+        target_lang: Union[str, Sequence[str]],
         batch_size: int = 5,
         progress_bar: bool = False,
         sampler: Optional[Sampler] = None,
@@ -353,63 +359,39 @@ class EmbeddingToTextModelPipeline(torch.nn.Module):
             generator = BeamSearchSeq2SeqGenerator(self.model, **generator_kwargs)
 
         if isinstance(target_lang, str):
+            target_lang = [target_lang] * len(inputs)
+
+        if len(target_lang) != len(inputs):
+            raise ValueError(
+                "input and target_lang must have the same length for multi-language decoding."
+            )
+
+        def _do_translate(x: tuple[torch.Tensor, str]):
+            tensor, lang = x
             converter = SequenceToTextConverter(
                 generator,
                 self.tokenizer,
                 task="translation",
-                target_lang=target_lang,
+                target_lang=lang,
             )
-
-            def _do_translate(src_tensors: List[torch.Tensor]) -> List[str]:
-                texts, _ = converter.batch_convert(
-                    torch.stack(src_tensors).to(self.device), 
-                    None
-                )
-                return texts
-
-            pipeline: Iterable = (
-                read_sequence(list(inputs))
-                .bucket(batch_size)
-                .map(_do_translate)
-                .and_return()
+            texts, _ = converter.batch_convert(
+                torch.stack([tensor]).to(self.device),
+                None,
             )
-        else:
-            # target_lang is a sequence,
-            # so decode each sample with its
-            # language
-            if len(target_lang) != len(inputs):
-                raise ValueError(
-                "input and target_lang must have the same length for multi-language decoding."
-                )
-        
-            def _do_translate(
-                x: tuple[torch.Tensor, str]
-            ):
-                tensor, lang = x
-                converter = SequenceToTextConverter(
-                    generator,
-                    self.tokenizer,
-                    task="translation",
-                    target_lang=lang,
-                )
-                texts, _ = converter.batch_convert(
-                    torch.stack([tensor]).to(self.device),
-                    None,
-                )
-                return texts
-            
-            pipeline: Iterable = (
-                read_sequence(
-                    list(
-                        zip(
-                            list(inputs),
-                            list(target_lang),
-                        )
+            return texts
+
+        pipeline: Iterable = (
+            read_sequence(
+                list(
+                    zip(
+                        list(inputs),
+                        list(target_lang),
                     )
                 )
-                .map(_do_translate)
-                .and_return()
             )
+            .map(_do_translate)
+            .and_return()
+        )
 
         if progress_bar:
             pipeline = add_progress_bar(pipeline, inputs=inputs, batch_size=batch_size)
