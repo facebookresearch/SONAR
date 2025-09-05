@@ -196,18 +196,17 @@ class TextToEmbeddingModelPipeline(torch.nn.Module):
         if batch_size is not None and batch_size <= 0:
             raise ValueError("`batch_size` should be strictly positive")
 
-        if isinstance(source_lang, str):
-            tokenizer_encoder = self.tokenizer.create_encoder(
-                lang=source_lang,
-                device=self.device,
-            )
-
-            def encode_fn(text: str):
-                return tokenizer_encoder(text)
-
-        else:
-            # Multiple languages
-            def encode_fn(x: tuple[str, str]):
+        def encode_fn(x: Union[str, tuple[str, str]]) -> torch.Tensor:
+            if isinstance(source_lang, str):
+                assert isinstance(x, str)
+                tokenizer_encoder = self.tokenizer.create_encoder(
+                    lang=source_lang,
+                    device=self.device,
+                )
+                return tokenizer_encoder(x)
+            else:
+                # Multiple languages
+                assert isinstance(x, tuple)
                 text, lang = x
                 tokenizer_encoder = self.tokenizer.create_encoder(
                     lang=lang,
@@ -248,7 +247,7 @@ class TextToEmbeddingModelPipeline(torch.nn.Module):
             else:
                 if len(input) != len(source_lang):
                     raise ValueError("Length of input and source_lang must match.")
-                items = list(zip(input, source_lang))
+                items = list(zip(input, source_lang))  # type: ignore[arg-type]
             sorting_index = torch.argsort(
                 torch.tensor(
                     list(
@@ -263,9 +262,8 @@ class TextToEmbeddingModelPipeline(torch.nn.Module):
                     )
                 )
             )
-            pipeline_builder = read_sequence(list(sorting_index.cpu())).map(
-                items.__getitem__
-            )
+            sorted_items = [items[i] for i in sorting_index.tolist()]
+            pipeline_builder = read_sequence(sorted_items)
 
         pipeline: Iterable = (
             pipeline_builder.map(encode_fn)
