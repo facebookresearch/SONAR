@@ -48,7 +48,7 @@ pip install -e .
 
 ### Versions
 Unfortunately, SONAR code is very much tied to fairseq2 code, and thus only specific version are compatible with each other:
-- `sonar-space~=0.5.0` (the current version) requires `fairseq2>=0.5.0`
+- `sonar-space~=0.5.0` (the current version) requires `fairseq2>=0.5.2`
 - `sonar-space~=0.4.0` required `fairseq2~=0.4.0`
 - `sonar-space~=0.2.0` required `fairseq2~=0.2.0`
 
