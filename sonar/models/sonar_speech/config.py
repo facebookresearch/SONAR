@@ -5,12 +5,15 @@
 # LICENSE file in the root directory of this source tree.
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Final, Optional
 
-from fairseq2.context import RuntimeContext
+from fairseq2.models.transformer import TransformerNormOrder
 from fairseq2.models.w2vbert import W2VBertConfig
 from fairseq2.models.wav2vec2 import Wav2Vec2EncoderConfig
-from fairseq2.nn.transformer import TransformerNormOrder
+from fairseq2.runtime.config_registry import ConfigRegistrar, get_config
+from fairseq2.runtime.dependency import DependencyContainer, DependencyResolver
+
+SONAR_SPEECH_FAMILY: Final = "sonar_speech"
 
 
 @dataclass
@@ -51,16 +54,12 @@ class SonarSpeechEncoderConfig:
     """The dropout probability in Transformer layers."""
 
 
-def register_sonar_speech_encoder_configs(context: RuntimeContext) -> None:
-    registry = context.get_config_registry(SonarSpeechEncoderConfig)
+def _register_sonar_speech_encoder_configs(container: DependencyContainer) -> None:
+    arch = ConfigRegistrar(container, SonarSpeechEncoderConfig)
 
-    arch = registry.decorator
-
-    w2vbert_registry = context.get_config_registry(W2VBertConfig)
-
-    @arch("english")
-    def basic() -> SonarSpeechEncoderConfig:
-        w2vbert_config = w2vbert_registry.get("600m")
+    @arch("english", advanced=True)
+    def basic(resolver: DependencyResolver) -> SonarSpeechEncoderConfig:
+        w2vbert_config = get_config(resolver, W2VBertConfig, "600m")
 
         return SonarSpeechEncoderConfig(
             w2v2_encoder_config=w2vbert_config.w2v2_config.encoder_config,
@@ -76,9 +75,9 @@ def register_sonar_speech_encoder_configs(context: RuntimeContext) -> None:
             dropout_p=0.1,
         )
 
-    @arch("non_english")
-    def multilingual() -> SonarSpeechEncoderConfig:
-        w2vbert_config = w2vbert_registry.get("600m")
+    @arch("non_english", advanced=True)
+    def multilingual(resolver: DependencyResolver) -> SonarSpeechEncoderConfig:
+        w2vbert_config = get_config(resolver, W2VBertConfig, "600m")
 
         return SonarSpeechEncoderConfig(
             w2v2_encoder_config=w2vbert_config.w2v2_config.encoder_config,

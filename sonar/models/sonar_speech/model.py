@@ -4,15 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional, Tuple
+from typing import Optional
 
-from fairseq2.models.sequence import SequenceBatch
-from fairseq2.models.transformer import TransformerFrontend
-from fairseq2.nn import LayerNorm
-from fairseq2.nn.padding import PaddingMask
-from fairseq2.nn.transformer import TransformerEncoder
+from fairseq2.models.transformer import TransformerEncoder, TransformerFrontend
+from fairseq2.nn import BatchLayout, LayerNorm
 from torch import Tensor
 from torch.nn import Dropout
+from typing_extensions import override
 
 from sonar.models.encoder_model import SonarEncoderModel, SonarEncoderOutput
 from sonar.nn.encoder_pooler import EncoderOutputPooler
@@ -20,7 +18,7 @@ from sonar.nn.encoder_pooler import EncoderOutputPooler
 
 class SonarSpeechEncoderModel(SonarEncoderModel):
     """Represents a SONAR speech encoder model as described in
-    # TODO add correct paper cite :cite:t`URL`."""
+    :cite:t`https://doi.org/10.48550/arXiv.2308.11466`."""
 
     encoder_frontend: TransformerFrontend
     encoder: TransformerEncoder
@@ -48,7 +46,7 @@ class SonarSpeechEncoderModel(SonarEncoderModel):
         :param encoder_pooler:
             Encoder output pooler.
         """
-        super().__init__(encoder.model_dim)
+        super().__init__()
 
         self.encoder_frontend = encoder_frontend
         self.encoder = encoder
@@ -56,9 +54,10 @@ class SonarSpeechEncoderModel(SonarEncoderModel):
         self.layer_norm = layer_norm
         self.encoder_pooler = encoder_pooler
 
-    def forward(self, batch: SequenceBatch) -> SonarEncoderOutput:
-        seqs, padding_mask = self.encoder_frontend(batch.seqs, batch.padding_mask)
-        encoder_output, encoder_padding_mask = self.encoder(seqs, padding_mask)
+    @override
+    def forward(self, seqs: Tensor, seqs_layout: BatchLayout) -> SonarEncoderOutput:
+        seqs, seqs_layout = self.encoder_frontend(seqs, seqs_layout)
+        encoder_output = self.encoder(seqs, seqs_layout)
 
         # This is the workaround for the pre-LN issue of redundant LayerNorm.
         # We call here, to avoid fiddling with wav2vec2's model and config.
@@ -66,21 +65,10 @@ class SonarSpeechEncoderModel(SonarEncoderModel):
             encoder_output = self.layer_norm(encoder_output)
 
         encoder_output = self.final_dropout(encoder_output)
-        encoder_output_pooled = self.encoder_pooler(
-            encoder_output, encoder_padding_mask
-        )
+        encoder_output_pooled = self.encoder_pooler(encoder_output, seqs_layout)
 
         return SonarEncoderOutput(
             encoded_seqs=encoder_output,
             sentence_embeddings=encoder_output_pooled,
-            padding_mask=padding_mask,
-        )
-
-    def encode(
-        self, seqs: Tensor, padding_mask: Optional[PaddingMask]
-    ) -> Tuple[Tensor, Optional[Tensor]]:
-        sonar_output_encoder = self.encoder(seqs, padding_mask)
-        return (
-            sonar_output_encoder.sentence_embeddings.unsqueeze(1),
-            None,
+            encoded_seqs_layout=seqs_layout,
         )

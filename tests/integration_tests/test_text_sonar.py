@@ -8,7 +8,7 @@ from typing import List
 
 import pytest
 import torch
-from fairseq2.models.sequence import SequenceBatch
+from fairseq2.nn import BatchLayout
 from torch.testing import assert_close  # type: ignore
 
 from sonar.inference_pipelines.text import (
@@ -28,7 +28,7 @@ class TestSonarTextClass:
     text2text = TextToTextModelPipeline(
         "text_sonar_basic_encoder",
         "text_sonar_basic_decoder",
-        "text_sonar_basic_encoder",
+        "text_sonar_basic_encoder",  # name of the tokenizer
     )
     vec2text = EmbeddingToTextModelPipeline(
         "text_sonar_basic_decoder",  # name of the decoder
@@ -60,45 +60,51 @@ class TestSonarTextClass:
 
     @torch.inference_mode()
     def test_text_decoder_sonar(self) -> None:
-        eng_tokenizer_encoder = self.text2text.tokenizer.create_encoder(lang="eng_Latn")
+        eng_tokenizer_encoder = self.text2text.decoder_tokenizer.create_encoder(
+            lang="eng_Latn"
+        )
         tokenized_seq = eng_tokenizer_encoder(self.eng_sentences[0]).unsqueeze(0)
-        batch = SequenceBatch(tokenized_seq, None)
-        encoded_vec = self.text2text.model.encoder(batch)
+        tokenized_seq_layout = BatchLayout.of(tokenized_seq)
+        encoded_vec = self.text2text.model.encoder(tokenized_seq, tokenized_seq_layout)
 
         decoder = self.text2text.model.decoder
         dummy_prev_output_tokens = torch.Tensor([[3, 333]]).int()
-        seqs, padding_mask = decoder.decoder_frontend(
-            dummy_prev_output_tokens, padding_mask=None
+        dummy_prev_output_layout = BatchLayout.of(dummy_prev_output_tokens)
+        seqs, seqs_layout = decoder.decoder_frontend(
+            dummy_prev_output_tokens, dummy_prev_output_layout
+        )
+        encoder_output = encoded_vec.sentence_embeddings.unsqueeze(1)
+        encoder_output_layout = BatchLayout.of(encoder_output)
+        decoder_output = decoder.decoder(
+            seqs,
+            seqs_layout,
+            encoder_output=encoder_output,
+            encoder_output_layout=encoder_output_layout,
         )
 
-        decoder_output, decoder_padding_mask = decoder.decoder(
-            seqs,
-            padding_mask,
-            encoder_output=encoded_vec.sentence_embeddings.unsqueeze(1),
-        )
-        decoder_output = decoder.project(decoder_output, decoder_padding_mask)
-        out = decoder_output.logits
+        decoder_output = decoder.project(decoder_output)
+
         assert_close(
-            out[0, 0, :4],
+            decoder_output[0, 0, :4],
             torch.Tensor([-1.4572, -2.7325, -1.0546, 0.7818]),
             rtol=1e-4,
             atol=1e-4,
         )
         assert_close(
-            out[0, 0, -3:],
+            decoder_output[0, 0, -3:],
             torch.Tensor([0.8982, 0.4996, -0.1487]),
             rtol=1e-4,
             atol=1e-4,
         )
 
         assert_close(
-            out[0, 1, :4],
+            decoder_output[0, 1, :4],
             torch.Tensor([2.4092, 6.9624, 3.6308, 9.4825]),
             rtol=1e-4,
             atol=1e-4,
         )
         assert_close(
-            out[0, 1, -4:],
+            decoder_output[0, 1, -4:],
             torch.Tensor([3.8826, 3.8777, 3.2820, 3.3275]),
             rtol=1e-4,
             atol=1e-4,

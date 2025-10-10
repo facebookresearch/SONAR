@@ -5,8 +5,12 @@
 # MIT_LICENSE file in the root directory of this source tree.
 
 from dataclasses import dataclass
+from typing import Final
 
-from fairseq2.context import RuntimeContext
+from fairseq2.runtime.config_registry import ConfigRegistrar
+from fairseq2.runtime.dependency import DependencyContainer
+
+MUTOX_FAMILY: Final = "mutox_classifier"
 
 
 @dataclass
@@ -17,10 +21,8 @@ class MutoxConfig:
     input_size: int
 
 
-def register_mutox_configs(context: RuntimeContext) -> None:
-    registry = context.get_config_registry(MutoxConfig)
-
-    arch = registry.decorator
+def _register_mutox_configs(container: DependencyContainer) -> None:
+    arch = ConfigRegistrar(container, MutoxConfig)
 
     @arch("mutox")
     def _base_mutox() -> MutoxConfig:

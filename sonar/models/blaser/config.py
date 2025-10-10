@@ -5,11 +5,14 @@
 # LICENSE file in the root directory of this source tree.
 
 from dataclasses import dataclass, field
-from typing import List
+from typing import Final, List
 
-from fairseq2.context import RuntimeContext
+from fairseq2.runtime.config_registry import ConfigRegistrar
+from fairseq2.runtime.dependency import DependencyContainer
 
 from sonar.models.blaser.model import ACTIVATIONS, BLASER_INPUT_FORMS
+
+BLASER_FAMILY: Final = "blaser"
 
 
 @dataclass
@@ -35,10 +38,8 @@ class BlaserConfig:
             )
 
 
-def register_blaser_configs(context: RuntimeContext) -> None:
-    registry = context.get_config_registry(BlaserConfig)
-
-    arch = registry.decorator
+def _register_blaser_configs(container: DependencyContainer) -> None:
+    arch = ConfigRegistrar(container, BlaserConfig)
 
     @arch("basic_ref")
     def basic_ref() -> BlaserConfig:

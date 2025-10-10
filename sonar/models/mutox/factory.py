@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from dataclasses import asdict
 
 from torch import nn
 
@@ -12,7 +11,7 @@ from sonar.models.mutox.config import MutoxConfig
 from sonar.models.mutox.model import MutoxClassifier
 
 
-def create_mutox_model(config: MutoxConfig) -> MutoxClassifier:
+def _create_mutox_model(config: MutoxConfig) -> MutoxClassifier:
     # TODO: refactor the model and the config to make this more flexible
     model_h1 = nn.Sequential(
         nn.Dropout(0.01),

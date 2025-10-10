@@ -5,8 +5,12 @@
 # LICENSE file in the root directory of this source tree.
 
 from dataclasses import dataclass
+from typing import Final
 
-from fairseq2.context import RuntimeContext
+from fairseq2.runtime.config_registry import ConfigRegistrar
+from fairseq2.runtime.dependency import DependencyContainer
+
+LASER2_FAMILY: Final = "lstm"
 
 
 @dataclass
@@ -20,10 +24,8 @@ class Laser2Config:
     padding_value: float = 0.0
 
 
-def register_laser2_configs(context: RuntimeContext) -> None:
-    registry = context.get_config_registry(Laser2Config)
-
-    arch = registry.decorator
+def _register_laser2_configs(container: DependencyContainer) -> None:
+    arch = ConfigRegistrar(container, Laser2Config)
 
     @arch("laser2")
     def laser2() -> Laser2Config:

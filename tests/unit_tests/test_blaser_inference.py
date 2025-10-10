@@ -8,7 +8,7 @@ import pytest
 import torch
 from torch.testing import assert_close
 
-from sonar.models.blaser import BlaserConfig, create_blaser_model
+from sonar.models.blaser import BlaserConfig, _create_blaser_model
 
 
 @pytest.mark.parametrize("embedding_dim", [32, 1024])
@@ -16,7 +16,7 @@ from sonar.models.blaser import BlaserConfig, create_blaser_model
 def test_blaser_qe(embedding_dim, batch_size):
     """Testing that a BLASER-QE model can be created and runs"""
     config = BlaserConfig(input_form="QE", embedding_dim=embedding_dim)
-    blaser = create_blaser_model(config).eval()
+    blaser = _create_blaser_model(config).eval()
     embedding = torch.zeros([batch_size, embedding_dim])
 
     # test that the forward method produces an expected shape
@@ -33,7 +33,7 @@ def test_blaser_qe(embedding_dim, batch_size):
 def test_blaser_ref(embedding_dim, batch_size):
     """Testing that a model can be created and that forward returns a right shape"""
     config = BlaserConfig(input_form="COMET", embedding_dim=embedding_dim)
-    blaser = create_blaser_model(config)
+    blaser = _create_blaser_model(config).eval()
     embedding = torch.zeros([batch_size, embedding_dim])
 
     # test that the forward method produces an expected shape
@@ -50,7 +50,7 @@ def test_blaser_ref(embedding_dim, batch_size):
 def test_input_form(input_form, embedding_dim):
     """Testing that BLASER inputs are processed correctlyb"""
     config = BlaserConfig(input_form=input_form, embedding_dim=embedding_dim)
-    blaser = create_blaser_model(config)
+    blaser = _create_blaser_model(config).eval()
     # the input vectors are arbitrary; we are checking only how they are concatenated
     src = torch.arange(0, embedding_dim).unsqueeze(0) / embedding_dim
     mt = torch.cos(src)

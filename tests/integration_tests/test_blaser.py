@@ -13,7 +13,7 @@ from sonar.models.blaser import get_blaser_model_hub
 def test_blaser2_ref():
     """Compare predictions of a specific reference-based model with hardcoded expected values"""
     model_hub = get_blaser_model_hub()
-    blaser = model_hub.load("blaser_2_0_ref")
+    blaser = model_hub.load_model("blaser_2_0_ref")
     blaser.eval()
     emb = torch.zeros([1, 1024]) + 1 / 32
     pred = blaser(src=emb, mt=emb, ref=emb).item()
@@ -29,7 +29,7 @@ def test_blaser2_ref():
 def test_blaser2_qe():
     """Compare predictions of a specific referenceless model with hardcoded expected values"""
     model_hub = get_blaser_model_hub()
-    blaser = model_hub.load("blaser_2_0_qe")
+    blaser = model_hub.load_model("blaser_2_0_qe")
     blaser.eval()
     emb = torch.zeros([1, 1024]) + 1 / 32
     pred = blaser(src=emb, mt=emb).item()

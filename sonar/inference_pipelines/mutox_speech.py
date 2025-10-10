@@ -7,8 +7,8 @@
 from typing import Union
 
 import torch
-from fairseq2.data import DataPipelineBuilder
-from fairseq2.typing import Device
+from fairseq2.data.data_pipeline import DataPipelineBuilder
+from fairseq2.device import Device
 
 from sonar.inference_pipelines.speech import (
     AudioToFbankDataPipelineBuilder,
@@ -44,7 +44,7 @@ class MutoxSpeechClassifierPipeline(SpeechInferencePipeline):
         self.model.to(device).eval()
 
         if isinstance(mutox_classifier, str):
-            self.mutox_classifier = get_mutox_model_hub().load(
+            self.mutox_classifier = get_mutox_model_hub().load_model(
                 mutox_classifier,
                 device=device,
             )
@@ -61,8 +61,8 @@ class MutoxSpeechClassifierPipeline(SpeechInferencePipeline):
         device: Device = CPU_DEVICE,
     ) -> "MutoxSpeechClassifierPipeline":
         encoder_hub = get_sonar_speech_encoder_hub()
-        encoder = encoder_hub.load(encoder_name, device=device)
-        mutox_classifier = get_mutox_model_hub().load(
+        encoder = encoder_hub.load_model(encoder_name, device=device)
+        mutox_classifier = get_mutox_model_hub().load_model(
             mutox_classifier_name,
             device=device,
         )

@@ -8,13 +8,11 @@ from enum import Enum
 from typing import Optional, final
 
 import torch
-from fairseq2.models.sequence import SequenceBatch
-from fairseq2.models.transformer import TransformerFrontend
+from fairseq2.models.transformer import TransformerEncoder, TransformerFrontend
 from fairseq2.nn import LayerNorm
-from fairseq2.nn.padding import PaddingMask, apply_padding_mask
-from fairseq2.nn.transformer import TransformerEncoder
-from fairseq2.typing import override
+from fairseq2.nn.batch_layout import BatchLayout
 from torch import Tensor
+from typing_extensions import override
 
 from sonar.models.encoder_model import SonarEncoderModel, SonarEncoderOutput
 from sonar.nn.encoder_pooler import EncoderOutputPooler
@@ -36,6 +34,7 @@ class SonarTextTransformerEncoderModel(SonarEncoderModel):
         self,
         encoder_frontend: TransformerFrontend,
         encoder: TransformerEncoder,
+        max_source_seq_len: int,
         layer_norm: Optional[LayerNorm] = None,
         pooling: Pooling = Pooling.LAST,
         pooler: Optional[EncoderOutputPooler] = None,
@@ -45,21 +44,23 @@ class SonarTextTransformerEncoderModel(SonarEncoderModel):
             The encoder frontend.
         :param encoder:
             The encoder.
+        :param max_source_seq_len:
+            The maximum sequence length the encoder can ingest.
         :param layer_norm:
             optional LayerNorm that is applied on encoder output
         """
-        super().__init__(encoder.model_dim)
-        if encoder_frontend.model_dim != encoder.model_dim:
-            raise ValueError(
-                f"`model_dim` of `encoder_frontend` and `model_dim` of `encoder` must be equal, but are {encoder_frontend.model_dim} and {encoder.model_dim} instead."
-            )
-        if (
-            layer_norm is not None
-            and layer_norm.normalized_shape[0] != encoder.model_dim
-        ):
-            raise ValueError(
-                f"`model_dim` of `encoder` and `normalized_shape` of `layer_norm` must be equal, but are {encoder_frontend.model_dim} and {layer_norm.normalized_shape} instead."
-            )
+        super().__init__()
+        #        if encoder_frontend.model_dim != encoder.model_dim:
+        #            raise ValueError(
+        #                f"`model_dim` of `encoder_frontend` and `model_dim` of `encoder` must be equal, but are {encoder_frontend.model_dim} and {encoder.model_dim} instead."
+        #            )
+        #        if (
+        #            layer_norm is not None
+        #            and layer_norm.normalized_shape[0] != encoder.model_dim
+        #        ):
+        #            raise ValueError(
+        #                f"`model_dim` of `encoder` and `normalized_shape` of `layer_norm` must be equal, but are {encoder_frontend.model_dim} and {layer_norm.normalized_shape} instead."
+        #            )
         self.encoder_frontend = encoder_frontend
         self.encoder = encoder
         self.layer_norm = layer_norm
@@ -67,7 +68,7 @@ class SonarTextTransformerEncoderModel(SonarEncoderModel):
         self.pooler = pooler
 
     def pool(
-        self, seqs: Tensor, padding_mask: Optional[PaddingMask], pooling: Pooling
+        self, seqs: Tensor, seqs_layout: BatchLayout | None, pooling: Pooling
     ) -> Tensor:
         """Apply determininstic or trainable pooling"""
         if pooling == Pooling.ATTENTION:
@@ -75,17 +76,17 @@ class SonarTextTransformerEncoderModel(SonarEncoderModel):
                 self.pooler is not None
             ), "Cannot use trainable pooling without a pooler in the model"
             sentence_embedding = self.pooler(
-                encoder_output=seqs, encoder_padding_mask=padding_mask
+                encoder_output=seqs, encoder_output_layout=seqs_layout
             )
         else:
             sentence_embedding = self.static_pooling(
-                seqs=seqs, padding_mask=padding_mask, pooling=pooling
+                seqs=seqs, seqs_layout=seqs_layout, pooling=pooling
             )
         return sentence_embedding
 
     @staticmethod
     def static_pooling(
-        seqs: Tensor, padding_mask: Optional[PaddingMask], pooling: Pooling
+        seqs: Tensor, seqs_layout: BatchLayout | None, pooling: Pooling
     ) -> Tensor:
         """Deterministic pooling along sequence dimension to get a sentence representation.
         In the future, some SONAR text encoders may have a trainable pooler instead.
@@ -97,27 +98,32 @@ class SonarTextTransformerEncoderModel(SonarEncoderModel):
         Returns:
             Tensor: bs x model_dim
         """
+
         if pooling == Pooling.LAST:
-            if padding_mask is None:
+            if seqs_layout is None or (seqs_layout and not seqs_layout.padded):
                 sentence_embedding = seqs[:, -1]
             else:
-                seq_lens = padding_mask.seq_lens
+                seq_lens = seqs_layout.seq_lens_pt
 
                 sentence_embedding = seqs[
                     [torch.arange(seq_lens.shape[0]), (seq_lens - 1).clip_(0)]
                 ]
         elif pooling == Pooling.MAX:
-            seqs = apply_padding_mask(seqs, padding_mask, pad_value=-torch.inf)
+            seqs = SonarTextTransformerEncoderModel.replace_padded_values(
+                seqs, seqs_layout, pad_value=-torch.inf
+            )
             sentence_embedding = seqs.max(dim=1).values
         elif pooling == Pooling.MEAN:
-            seqs = apply_padding_mask(seqs, padding_mask, pad_value=0)
+            seqs = SonarTextTransformerEncoderModel.replace_padded_values(
+                seqs, seqs_layout, pad_value=0
+            )
             sentence_embedding = seqs.sum(dim=1)
-            if padding_mask is None:
+            if seqs_layout is None or not seqs_layout.padded:
                 weights = 1.0 / (seqs.size(1) + 1e-7)
                 sentence_embedding = sentence_embedding * weights
             else:
                 weights = 1.0 / (
-                    padding_mask.seq_lens.to(sentence_embedding.dtype) + 1e-7
+                    seqs_layout.seq_lens_pt.to(sentence_embedding.dtype) + 1e-7
                 )
                 sentence_embedding = torch.einsum(
                     "i...,i->i...", sentence_embedding, weights
@@ -127,17 +133,50 @@ class SonarTextTransformerEncoderModel(SonarEncoderModel):
 
         return sentence_embedding
 
-    @override
-    def forward(self, batch: SequenceBatch) -> SonarEncoderOutput:
-        embed_seqs, padding_mask = self.encoder_frontend(batch.seqs, batch.padding_mask)
+    @staticmethod
+    def replace_padded_values(
+        seqs: Tensor,
+        seqs_layout: BatchLayout | None,
+        pad_value: int | float | Tensor = 0,
+    ) -> Tensor:
+        """Replace the padded values in ``seqs`` with `pad_value`.
 
-        encoded_seqs, _ = self.encoder(embed_seqs, padding_mask)
+        :param seqs:
+            The sequences to mask. *Shape:* :math:`(N,S,*)` or :math:`(B,*)` for packed,
+            where :math:`N` is the batch size, :math:`S` is the sequence length, and
+            :math:`*` is any number of sequence-specific dimensions including none.
+        :param seqs_layout:
+            The batch layout to apply. If None or not padded, returns seqs unchanged.
+        :param pad_value:
+            The value for padded positions.
+
+        :returns:
+            The input sequences with mask applied. *Shape:* Same as ``seqs``.
+        """
+        if seqs_layout is None or not seqs_layout.padded:
+            return seqs
+
+        # True for valid positions, False for padding
+        mask = seqs_layout.position_indices >= 0
+
+        # Handle broadcasting for higher-dimensional tensors
+        for _ in range(seqs.ndim - mask.ndim):
+            mask = mask.unsqueeze(-1)
+
+        return seqs.where(mask, pad_value)
+
+    @override
+    def forward(self, seqs: Tensor, seqs_layout: BatchLayout) -> SonarEncoderOutput:
+        embed_seqs, embed_seqs_layout = self.encoder_frontend(seqs, seqs_layout)
+
+        encoded_seqs = self.encoder(embed_seqs, embed_seqs_layout)
+        # encoded_seqs_layout = BatchLayout.of(encoded_seqs)
 
         if self.layer_norm is not None:
             encoded_seqs = self.layer_norm(encoded_seqs)
-        sentence_embeddings = self.pool(encoded_seqs, padding_mask, self.pooling)
+        sentence_embeddings = self.pool(encoded_seqs, embed_seqs_layout, self.pooling)
         return SonarEncoderOutput(
             encoded_seqs=encoded_seqs,
             sentence_embeddings=sentence_embeddings,
-            padding_mask=padding_mask,
+            encoded_seqs_layout=embed_seqs_layout,
         )

@@ -10,5 +10,5 @@ from sonar.models.blaser.config import BlaserConfig
 from sonar.models.blaser.model import BlaserModel
 
 
-def create_blaser_model(config: BlaserConfig) -> BlaserModel:
+def _create_blaser_model(config: BlaserConfig) -> BlaserModel:
     return BlaserModel(**asdict(config))

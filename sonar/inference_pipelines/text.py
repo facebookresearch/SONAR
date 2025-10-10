@@ -8,26 +8,25 @@ import warnings
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Union, cast
 
-import fairseq2
 import torch
-from fairseq2.data import Collater, read_sequence
+from fairseq2.data.data_pipeline import Collater, read_sequence
 from fairseq2.data.text import read_text
-from fairseq2.data.text.tokenizers import TextTokenizer, get_text_tokenizer_hub
-from fairseq2.generation import (
-    BeamSearchSeq2SeqGenerator,
-    Sampler,
-    SamplingSeq2SeqGenerator,
-    Seq2SeqGenerator,
-)
-from fairseq2.generation.text import SequenceToTextConverter, TextTranslator
-from fairseq2.typing import CPU, DataType, Device
+from fairseq2.data.tokenizers import Tokenizer, load_tokenizer
+from fairseq2.data_type import DataType
+from fairseq2.device import CPU, Device
+from fairseq2.generation import Seq2SeqGenerator
+from fairseq2.generation.beam_search.generator import BeamSearchSeq2SeqGenerator
+from fairseq2.generation.sampling import Sampler, SamplingSeq2SeqGenerator
+from fairseq2.models import load_model
+from fairseq2.nn import BatchLayout
 
-from sonar.inference_pipelines.utils import add_progress_bar, extract_sequence_batch
-from sonar.models.encoder_model import SonarEncoderModel
-from sonar.models.sonar_text import (
-    get_sonar_text_decoder_hub,
-    get_sonar_text_encoder_hub,
+from sonar.inference_pipelines.utils import (
+    SequenceToTextConverter,
+    TextTranslator,
+    add_progress_bar,
+    extract_sequence_batch,
 )
+from sonar.models.encoder_model import SonarEncoderModel
 from sonar.models.sonar_translation import SonarEncoderDecoderModel
 from sonar.models.sonar_translation.model import DummyEncoderModel
 from sonar.nn.conditional_decoder_model import ConditionalTransformerDecoderModel
@@ -56,13 +55,17 @@ class precision_context:
 
 class TextToTextModelPipeline(torch.nn.Module):
     model: SonarEncoderDecoderModel
-    tokenizer: TextTokenizer
+    tokenizer: Tokenizer
 
     def __init__(
         self,
         encoder: Union[str, SonarEncoderModel],
         decoder: Union[str, ConditionalTransformerDecoderModel],
-        tokenizer: Union[str, TextTokenizer],
+        tokenizer: Optional[
+            Union[str, Tokenizer]
+        ] = None,  # did not remove this to avoid breaking existing code
+        encoder_tokenizer: Optional[Union[str, Tokenizer]] = None,
+        decoder_tokenizer: Optional[Union[str, Tokenizer]] = None,
         device: Device = CPU,
         dtype: Optional[DataType] = None,
     ) -> None:
@@ -70,23 +73,40 @@ class TextToTextModelPipeline(torch.nn.Module):
         Args:
             encoder (Union[str, SonarEncoderModel]): either card name or model object
             decoder (Union[str, ConditionalTransformerDecoderModel]): either card name or model object
-            tokenizer (Union[str, TextTokenizer]): either card name or tokenizer object
+            tokenizer (Union[str, Tokenizer], optional): either card name or tokenizer object. Defaults to None.
+            encoder_tokenizer (Union[str, Tokenizer], optional): either card name or tokenizer object. Defaults to None.
+            decoder_tokenizer (Union[str, Tokenizer], optional): either card name or tokenizer object. Defaults to None.
             device (Device, optional): Defaults to CPU.
             dtype (DataType, optional): The data type of the model parameters and buffers.
         """
         super().__init__()
-        fairseq2.setup_fairseq2()
         if isinstance(encoder, str):
-            encoder_hub = get_sonar_text_encoder_hub()
-            encoder = encoder_hub.load(encoder, device=device, dtype=dtype)
+            encoder = load_model(encoder, device=device, dtype=dtype)  # type: ignore
         if isinstance(decoder, str):
-            decoder_hub = get_sonar_text_decoder_hub()
-            decoder = decoder_hub.load(decoder, device=device, dtype=dtype)
+            decoder = load_model(decoder, device=device, dtype=dtype)  # type: ignore
         if isinstance(tokenizer, str):
-            tokenizer_hub = get_text_tokenizer_hub()
-            tokenizer = tokenizer_hub.load(tokenizer)
+            tokenizer = load_tokenizer(tokenizer)
 
-        self.tokenizer = tokenizer
+        assert tokenizer is not None or (
+            encoder_tokenizer is not None and decoder_tokenizer is not None
+        ), "Either tokenizer or both encoder_tokenizer and decoder_tokenizer must be provided"
+
+        if tokenizer is not None:
+            if isinstance(tokenizer, str):
+                tokenizer = load_tokenizer(tokenizer)
+            self.encoder_tokenizer = tokenizer
+            self.decoder_tokenizer = tokenizer
+        else:
+            if isinstance(encoder_tokenizer, str):
+                encoder_tokenizer = load_tokenizer(encoder_tokenizer)
+            if isinstance(decoder_tokenizer, str):
+                decoder_tokenizer = load_tokenizer(decoder_tokenizer)
+            assert (
+                encoder_tokenizer is not None and decoder_tokenizer is not None
+            ), "we need both encoder_tokenizer and decoder_tokenizer if tokenizer is not provided"  # noqa
+            self.encoder_tokenizer = encoder_tokenizer
+            self.decoder_tokenizer = decoder_tokenizer
+
         self.model = SonarEncoderDecoderModel(encoder, decoder).eval()  # type: ignore
 
     @torch.inference_mode()
@@ -95,23 +115,43 @@ class TextToTextModelPipeline(torch.nn.Module):
         input: Union[Path, Sequence[str]],
         source_lang: str,
         target_lang: str,
+        source_mode: str = "source",
+        target_mode: str = "target",
         batch_size: int = 5,
         progress_bar: bool = False,
         **generator_kwargs,
     ) -> List[str]:
         # truncate the max seq len to avoid model to fail
         generator_kwargs = generator_kwargs or {}
-        model_max_seq_len = self.model.decoder.decoder_frontend.pos_encoder.max_seq_len  # type: ignore[union-attr]
-        generator_kwargs["max_seq_len"] = min(
-            model_max_seq_len, generator_kwargs.get("max_seq_len", model_max_seq_len)
-        )
 
-        generator = BeamSearchSeq2SeqGenerator(self.model, **generator_kwargs)
+        model_max_seq_len = cast(
+            int | None,
+            (
+                self.model.decoder.decoder_frontend.pos_encoder.max_seq_len
+                if self.model.decoder.decoder_frontend.pos_encoder is not None
+                else self.model.decoder.decoder.layers[
+                    0
+                ].self_attn.pos_encoder.max_seq_len
+            ),
+        )  # type: ignore[union-attr]
+        if model_max_seq_len is None:
+            model_max_seq_len = generator_kwargs.get("max_seq_len", model_max_seq_len)
+
+        generator_kwargs["max_seq_len"] = min(
+            model_max_seq_len,
+            generator_kwargs.get("max_seq_len", model_max_seq_len),  # type: ignore
+        )
+        generator = BeamSearchSeq2SeqGenerator(
+            self.model, self.decoder_tokenizer.vocab_info, **generator_kwargs
+        )
         translator = TextTranslator(
             generator,
-            tokenizer=self.tokenizer,
+            encoder_tokenizer=self.encoder_tokenizer,  # type: ignore
+            decoder_tokenizer=self.decoder_tokenizer,  # type: ignore
             source_lang=source_lang,
             target_lang=target_lang,
+            source_mode=source_mode,
+            target_mode=target_mode,
         )
 
         def _do_translate(src_texts: List[str]) -> List[str]:
@@ -139,30 +179,27 @@ class TextToTextModelPipeline(torch.nn.Module):
 
 class TextToEmbeddingModelPipeline(torch.nn.Module):
     model: SonarEncoderModel
-    tokenizer: TextTokenizer
+    tokenizer: Tokenizer
 
     def __init__(
         self,
         encoder: Union[str, SonarEncoderModel],
-        tokenizer: Union[str, TextTokenizer],
+        tokenizer: Union[str, Tokenizer],
         device: Device = CPU,
         dtype: Optional[DataType] = None,
     ) -> None:
         """
         Args:
             encoder (Union[str, SonarEncoderModel]): either card name or model object
-            tokenizer (Union[str, TextTokenizer]): either card name or tokenizer object
+            tokenizer (Union[str, Tokenizer]): either card name or tokenizer object
             device (device, optional): Defaults to CPU.
             dtype (DataType, optional): The data type of the model parameters and buffers.
         """
         super().__init__()
-        fairseq2.setup_fairseq2()
         if isinstance(encoder, str):
-            encoder_hub = get_sonar_text_encoder_hub()
-            encoder = encoder_hub.load(encoder, device=device, dtype=dtype)
+            encoder = load_model(encoder, device=device, dtype=dtype)  # type: ignore
         if isinstance(tokenizer, str):
-            tokenizer_hub = get_text_tokenizer_hub()
-            tokenizer = tokenizer_hub.load(tokenizer)
+            tokenizer = load_tokenizer(tokenizer)
 
         self.tokenizer = tokenizer
 
@@ -174,7 +211,7 @@ class TextToEmbeddingModelPipeline(torch.nn.Module):
     def predict(
         self,
         input: Union[Path, Sequence[str]],
-        source_lang: str,
+        source_lang: str | None = None,
         batch_size: Optional[int] = 5,
         batch_max_tokens: Optional[int] = None,
         max_seq_len: Optional[int] = None,
@@ -199,7 +236,14 @@ class TextToEmbeddingModelPipeline(torch.nn.Module):
         tokenizer_encoder = self.tokenizer.create_encoder(
             lang=source_lang, device=self.device
         )
-        model_max_len = cast(int | None, self.model.encoder_frontend.pos_encoder.max_seq_len)  # type: ignore[union-attr]
+        model_max_len = cast(
+            int | None,
+            (
+                self.model.encoder_frontend.pos_encoder.max_seq_len
+                if self.model.encoder_frontend.pos_encoder is not None
+                else self.model.encoder.layers[0].self_attn.pos_encoder.max_seq_len
+            ),
+        )  # type: ignore
         if max_seq_len is None:
             max_seq_len = model_max_len
         if max_seq_len is not None and model_max_len is not None:
@@ -241,7 +285,7 @@ class TextToEmbeddingModelPipeline(torch.nn.Module):
             .map(Collater(self.tokenizer.vocab_info.pad_idx))
             .map(lambda x: extract_sequence_batch(x, self.device))
             .prefetch(2)
-            .map(self.model)
+            .map(lambda x: self.model(*x))
             .map(lambda x: x.sentence_embeddings.to(target_device or self.device))
             .and_return()
         )
@@ -271,32 +315,29 @@ class TextToEmbeddingModelPipeline(torch.nn.Module):
 
 class EmbeddingToTextModelPipeline(torch.nn.Module):
     model: SonarEncoderDecoderModel
-    tokenizer: TextTokenizer
+    tokenizer: Tokenizer
 
     def __init__(
         self,
         decoder: Union[str, ConditionalTransformerDecoderModel],
-        tokenizer: Union[str, TextTokenizer],
+        tokenizer: Union[str, Tokenizer],
         device: Device = CPU,
         dtype: Optional[DataType] = None,
     ) -> None:
         """
         Args:
             decoder (Union[str, ConditionalTransformerDecoderModel]): either card name or model object
-            tokenizer (Union[str, TextTokenizer]): either card name or tokenizer object
+            tokenizer (Union[str, Tokenizer]): either card name or tokenizer object
             device (device, optional): Defaults to CPU.
             dtype (DataType, optional): The data type of the model parameters and buffers.
         """
         super().__init__()
-        fairseq2.setup_fairseq2()
         if isinstance(decoder, str):
-            decoder_hub = get_sonar_text_decoder_hub()
-            decoder = decoder_hub.load(decoder, device=device, dtype=dtype)
+            decoder = load_model(decoder, device=device, dtype=dtype)  # type: ignore
         if isinstance(tokenizer, str):
-            tokenizer_hub = get_text_tokenizer_hub()
-            tokenizer = tokenizer_hub.load(tokenizer)
+            tokenizer = load_tokenizer(tokenizer)
 
-        encoder = DummyEncoderModel(decoder.model_dim)  # type: ignore
+        encoder = DummyEncoderModel()  # type: ignore
 
         self.device = device
         self.tokenizer = tokenizer
@@ -307,6 +348,7 @@ class EmbeddingToTextModelPipeline(torch.nn.Module):
         self,
         inputs: torch.Tensor,
         target_lang: str,
+        target_mode: str = "target",
         batch_size: int = 5,
         progress_bar: bool = False,
         sampler: Optional[Sampler] = None,
@@ -314,22 +356,25 @@ class EmbeddingToTextModelPipeline(torch.nn.Module):
     ) -> List[str]:
         if sampler is not None:
             generator: Seq2SeqGenerator = SamplingSeq2SeqGenerator(
-                self.model, sampler, **generator_kwargs
+                self.model, self.tokenizer.vocab_info, sampler, **generator_kwargs
             )
         else:
-            generator = BeamSearchSeq2SeqGenerator(self.model, **generator_kwargs)
+            generator = BeamSearchSeq2SeqGenerator(
+                self.model, self.tokenizer.vocab_info, **generator_kwargs
+            )
 
         converter = SequenceToTextConverter(
             generator,
             self.tokenizer,
             task="translation",
             target_lang=target_lang,
+            mode=target_mode,
         )
 
         def _do_translate(src_tensors: List[torch.Tensor]) -> List[str]:
-            texts, _ = converter.batch_convert(
-                torch.stack(src_tensors).to(self.device), None
-            )
+            seqs = torch.stack(src_tensors).to(self.device)
+            seqs_layout = BatchLayout.of(seqs)
+            texts, _ = converter.batch_convert(seqs, seqs_layout)
             return texts
 
         pipeline: Iterable = (

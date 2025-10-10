@@ -5,10 +5,13 @@
 # LICENSE file in the root directory of this source tree.
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Final, Optional
 
-from fairseq2.context import RuntimeContext
-from fairseq2.data import VocabularyInfo
+from fairseq2.data.tokenizers import VocabularyInfo
+from fairseq2.runtime.config_registry import ConfigRegistrar
+from fairseq2.runtime.dependency import DependencyContainer
+
+SONAR_TEXT_ENCODER_FAMILY: Final = "transformer_encoder"
 
 
 @dataclass
@@ -56,9 +59,6 @@ class SonarTextEncoderConfig:
     activation_fn: str = "ReLU"
     """ activation function to use in FeedForward network of Transformers; None corresponds to ReLu"""
 
-    layernorm_embedding: bool = False
-    """ If True, apply LayerNorm on sequence embeddings"""
-
     no_scale_embedding: bool = False
     """if False, multiply sequence embeddings by sqrt(model_dim) before positional encoding"""
 
@@ -84,10 +84,8 @@ class SonarTextEncoderConfig:
     """if True, do max_seq_len += pad_idx + 1 for retro-compatibgiility with fairseq trained models"""
 
 
-def register_sonar_text_encoder_configs(context: RuntimeContext) -> None:
-    registry = context.get_config_registry(SonarTextEncoderConfig)
-
-    arch = registry.decorator
+def _register_sonar_text_encoder_configs(container: DependencyContainer) -> None:
+    arch = ConfigRegistrar(container, SonarTextEncoderConfig)
 
     @arch("basic")
     def basic() -> SonarTextEncoderConfig:
@@ -104,7 +102,6 @@ def register_sonar_text_encoder_configs(context: RuntimeContext) -> None:
             max_seq_len=512,
             pooling="mean",
             no_token_positional_embeddings=False,
-            layernorm_embedding=False,
             activation_fn="ReLU",
             normalize_before=False,
             num_encoder_layers=24,
@@ -127,6 +124,9 @@ def register_sonar_text_encoder_configs(context: RuntimeContext) -> None:
         return config
 
 
+SONAR_TEXT_DECODER_FAMILY: Final = "transformer_decoder"
+
+
 @dataclass
 class SonarTextDecoderConfig:
     """Holds the configuration of an SonarDecoder model."""
@@ -144,9 +144,6 @@ class SonarTextDecoderConfig:
 
     activation_fn: str
     """ activation function to use in FeedForward network of Transformers; None corresponds to ReLu"""
-
-    layernorm_embedding: bool
-    """ If True, apply LayerNorm on sequence embeddings"""
 
     no_scale_embedding: bool
     """if False, multiply sequence embeddings by sqrt(model_dim) before positional encoding"""
@@ -189,10 +186,8 @@ class SonarTextDecoderConfig:
     """The dimensionality of the input. If None, model_dim is used instead."""
 
 
-def register_sonar_text_decoder_configs(context: RuntimeContext) -> None:
-    registry = context.get_config_registry(SonarTextDecoderConfig)
-
-    arch = registry.decorator
+def _register_sonar_text_decoder_configs(container: DependencyContainer) -> None:
+    arch = ConfigRegistrar(container, SonarTextDecoderConfig)
 
     @arch("basic")
     def basic() -> SonarTextDecoderConfig:
@@ -208,7 +203,6 @@ def register_sonar_text_decoder_configs(context: RuntimeContext) -> None:
             attention_dropout_p=0.1,
             activation_dropout_p=0.1,
             no_token_positional_embeddings=False,
-            layernorm_embedding=False,
             activation_fn="ReLU",
             normalize_before=True,
             num_encoder_layers=24,
@@ -244,7 +238,6 @@ def register_sonar_text_decoder_configs(context: RuntimeContext) -> None:
             attention_dropout_p=0.1,
             activation_dropout_p=0.1,
             no_token_positional_embeddings=False,
-            layernorm_embedding=False,
             activation_fn="ReLU",
             normalize_before=True,
             num_encoder_layers=2,

@@ -8,25 +8,24 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Iterable, List, Optional, Sequence, Union, cast
+from typing import Iterable, List, Optional, Sequence, Union
 
-import fairseq2
 import torch
-from fairseq2.data import (
+from fairseq2.data._memory import MemoryBlock
+from fairseq2.data.audio import AudioDecoder, WaveformToFbankConverter
+from fairseq2.data.data_pipeline import (
     Collater,
     DataPipeline,
     DataPipelineBuilder,
     FileMapper,
-    MemoryBlock,
     read_sequence,
 )
-from fairseq2.data.audio import AudioDecoder, WaveformToFbankConverter
 from fairseq2.data.text import StrSplitter, read_text
-from fairseq2.data.text.tokenizers import TextTokenizer, get_text_tokenizer_hub
-from fairseq2.generation import BeamSearchSeq2SeqGenerator
+from fairseq2.data.tokenizers import Tokenizer, load_tokenizer
+from fairseq2.data_type import DataType
+from fairseq2.device import Device
+from fairseq2.generation.beam_search.generator import BeamSearchSeq2SeqGenerator
 from fairseq2.generation.text import SequenceToTextConverter
-from fairseq2.models.sequence import SequenceBatch
-from fairseq2.typing import DataType, Device
 
 from sonar.inference_pipelines.utils import add_progress_bar, extract_sequence_batch
 from sonar.models.encoder_model import SonarEncoderModel
@@ -179,7 +178,7 @@ class SpeechToEmbeddingPipeline(SpeechInferencePipeline):
     @classmethod
     def load_model_from_name(cls, encoder_name: str) -> "SpeechToEmbeddingPipeline":
         encoder_hub = get_sonar_speech_encoder_hub()
-        encoder = encoder_hub.load(encoder_name, device=CPU_DEVICE)
+        encoder = encoder_hub.load_model(encoder_name, device=CPU_DEVICE)
         return cls(model=encoder)
 
     def prebuild_pipeline(self, context: SpeechInferenceParams) -> DataPipelineBuilder:
@@ -196,7 +195,8 @@ class SpeechToEmbeddingPipeline(SpeechInferencePipeline):
     @torch.inference_mode()
     def run_inference(self, data: dict) -> dict:
         # TODO assert all(data['sample_rate'] == 16000.0)
-        return self.model(data["fbank"])
+        # Note the fan-out which unpacks the Tuple[Tensor, BatchLayout]
+        return self.model(*data["fbank"])
 
 
 class SpeechToTextPipeline(SpeechInferencePipeline):
@@ -225,11 +225,9 @@ class SpeechToTextPipeline(SpeechInferencePipeline):
         AudioToFbankDataPipelineBuilder()
     )
     model: SonarEncoderDecoderModel
-    tokenizer: TextTokenizer
+    tokenizer: Tokenizer
 
-    def __init__(
-        self, model: SonarEncoderDecoderModel, tokenizer: TextTokenizer
-    ) -> None:
+    def __init__(self, model: SonarEncoderDecoderModel, tokenizer: Tokenizer) -> None:
         self.model = model.eval()
         self.tokenizer = tokenizer
 
@@ -237,21 +235,22 @@ class SpeechToTextPipeline(SpeechInferencePipeline):
     def load_model_from_name(
         cls, encoder_name: str, decoder_name: str
     ) -> "SpeechToTextPipeline":
-        tokenizer_hub = get_text_tokenizer_hub()
-        tokenizer = tokenizer_hub.load(decoder_name)
+        tokenizer = load_tokenizer(decoder_name)
 
         encoder_hub = get_sonar_speech_encoder_hub()
-        encoder = encoder_hub.load(encoder_name, device=CPU_DEVICE)
+        encoder = encoder_hub.load_model(encoder_name, device=CPU_DEVICE)
 
         decoder_hub = get_sonar_text_decoder_hub()
-        decoder = decoder_hub.load(decoder_name, device=CPU_DEVICE)
+        decoder = decoder_hub.load_model(decoder_name, device=CPU_DEVICE)
 
         model = SonarEncoderDecoderModel(encoder, decoder).eval()
         return cls(model=model, tokenizer=tokenizer)
 
     def prebuild_pipeline(self, context: SpeechInferenceParams) -> DataPipelineBuilder:
         assert context.target_lang is not None
-        generator = BeamSearchSeq2SeqGenerator(self.model.to(context.device))
+        generator = BeamSearchSeq2SeqGenerator(
+            self.model.to(context.device), self.tokenizer.vocab_info
+        )
         converter = SequenceToTextConverter(
             generator,
             self.tokenizer,
@@ -260,8 +259,8 @@ class SpeechToTextPipeline(SpeechInferencePipeline):
         )
 
         def _do_generate(data: dict) -> List[str]:
-            batch = cast(SequenceBatch, data["fbank"])
-            texts, _ = converter.batch_convert(batch.seqs, batch.padding_mask)
+            seqs, seqs_layout = data["fbank"]
+            texts, _ = converter.batch_convert(seqs, seqs_layout)
             return texts
 
         return (
@@ -279,7 +278,6 @@ class SpeechModelPipelineInterface(torch.nn.Module):
 
     def __init__(self, fbank_dtype: DataType) -> None:
         super().__init__()
-        fairseq2.setup_fairseq2()
         self.convert_to_fbank = WaveformToFbankConverter(
             num_mel_bins=80,
             waveform_scale=2**15,
@@ -310,13 +308,13 @@ class SpeechModelPipelineInterface(torch.nn.Module):
 
 class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
     model: SonarEncoderDecoderModel
-    tokenizer: TextTokenizer
+    tokenizer: Tokenizer
 
     def __init__(
         self,
         encoder: Union[str, SonarEncoderModel],
         decoder: Union[str, ConditionalTransformerDecoderModel],
-        tokenizer: Union[str, TextTokenizer],
+        tokenizer: Union[str, Tokenizer],
         device: Device = CPU_DEVICE,
         fbank_dtype: DataType = torch.float32,
     ) -> None:
@@ -324,7 +322,7 @@ class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
         Args:
             encoder (Union[str, SonarEncoderModel]): either cart name or model object
             decoder (Union[str, ConditionalTransformerDecoderModel]): either cart name or model object
-            tokenizer (Union[str, TextTokenizer]): either cart name or tokenizer object
+            tokenizer (Union[str, Tokenizer]): either cart name or tokenizer object
             device (device, optional): . Defaults to CPU_DEVICE.
             fbank_dtype (DataType, optional):. Defaults to torch.float32.
         """
@@ -332,16 +330,15 @@ class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
         super().__init__(fbank_dtype)
         if isinstance(encoder, str):
             encoder_hub = get_sonar_speech_encoder_hub()
-            encoder = encoder_hub.load(encoder, device=device)
+            encoder = encoder_hub.load_model(encoder, device=device)
         if isinstance(decoder, str):
             decoder_hub = get_sonar_text_decoder_hub()
-            decoder = decoder_hub.load(decoder, device=device)
+            decoder = decoder_hub.load_model(decoder, device=device)
         if isinstance(tokenizer, str):
-            tokenizer_hub = get_text_tokenizer_hub()
-            tokenizer = tokenizer_hub.load(tokenizer)
+            tokenizer = load_tokenizer(tokenizer)
 
         self.tokenizer = tokenizer
-        self.model = SonarEncoderDecoderModel(encoder, decoder).to(device).eval()
+        self.model = SonarEncoderDecoderModel(encoder, decoder).to(device).eval()  # type: ignore
 
         # Only quantize the model in CUDA to bypass the error "LayerNormKernelImpl" not implemented for 'Half'
         # in some CUDAs and torch versions
@@ -361,7 +358,7 @@ class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
         **generator_kwargs,
     ) -> List[str]:
         generator = BeamSearchSeq2SeqGenerator(
-            self.model.to(self.device), **generator_kwargs
+            self.model.to(self.device), self.tokenizer.vocab_info, **generator_kwargs
         )
         converter = SequenceToTextConverter(
             generator,
@@ -371,8 +368,8 @@ class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
         )
 
         def _do_generate(data: dict) -> List[str]:
-            batch = cast(SequenceBatch, data["fbank"])
-            texts, _ = converter.batch_convert(batch.seqs, batch.padding_mask)
+            seqs, seqs_layout = data["fbank"]
+            texts, _ = converter.batch_convert(seqs, seqs_layout)
             return texts
 
         pipeline: Iterable = (
@@ -401,7 +398,7 @@ class SpeechToTextModelPipeline(SpeechModelPipelineInterface):
 
 class SpeechToEmbeddingModelPipeline(SpeechModelPipelineInterface):
     model: SonarEncoderModel
-    tokenizer: TextTokenizer
+    tokenizer: Tokenizer
 
     def __init__(
         self,
@@ -420,8 +417,8 @@ class SpeechToEmbeddingModelPipeline(SpeechModelPipelineInterface):
 
         if isinstance(encoder, str):
             encoder_hub = get_sonar_speech_encoder_hub()
-            encoder = encoder_hub.load(encoder, device=device)
-        self.model = encoder.to(device).eval()
+            encoder = encoder_hub.load_model(encoder, device=device)
+        self.model = encoder.to(device).eval()  # type: ignore
 
         # Only quantize the model in CUDA to bypass the error "LayerNormKernelImpl" not implemented for 'Half'
         # in some CUDAs and torch versions
@@ -449,7 +446,7 @@ class SpeechToEmbeddingModelPipeline(SpeechModelPipelineInterface):
                 lambda fbank: extract_sequence_batch(fbank, self.device),
                 selector="fbank",
             )
-            .map(lambda data: self.model(data["fbank"]).sentence_embeddings)
+            .map(lambda data: self.model(*data["fbank"]).sentence_embeddings)
         )
 
         return pipeline

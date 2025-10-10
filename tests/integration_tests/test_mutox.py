@@ -49,7 +49,7 @@ def test_sonar_mutox_classifier_integration(input_texts, source_lang, expected_o
     )
 
     hub = get_mutox_model_hub()
-    classifier = hub.load("sonar_mutox", device=device, dtype=dtype).eval()
+    classifier = hub.load_model("sonar_mutox", device=device, dtype=dtype).eval()
 
     with torch.inference_mode():
         embeddings = t2vec_model.predict(input_texts, source_lang=source_lang)
@@ -111,7 +111,7 @@ def test_sonar_mutox_classifier_probability_integration(
     )
 
     hub = get_mutox_model_hub()
-    classifier = hub.load("sonar_mutox", device=device, dtype=dtype).eval()
+    classifier = hub.load_model("sonar_mutox", device=device, dtype=dtype).eval()
 
     for text, lang, expected_prob in zip(
         input_texts, [source_lang] * len(input_texts), expected_probabilities

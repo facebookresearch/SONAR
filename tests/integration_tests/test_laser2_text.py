@@ -8,12 +8,11 @@ import tempfile
 from pathlib import Path
 
 import torch
-from fairseq2.data import Collater
+from fairseq2.data.data_pipeline import Collater
 from fairseq2.data.text import read_text
-from fairseq2.data.text.tokenizers import get_text_tokenizer_hub
+from fairseq2.data.tokenizers import load_tokenizer
+from fairseq2.models import load_model
 from torch.testing import assert_close
-
-from sonar.models.laser2_text import get_laser2_model_hub
 
 device = torch.device("cpu")
 
@@ -26,13 +25,11 @@ sentences = [
 
 
 def test_load_laser2_text() -> None:
-    model_hub = get_laser2_model_hub()
-    model = model_hub.load("laser2_text_encoder", device=device)
+    model = load_model("laser2_text_encoder", device=device)
 
     model.eval()
 
-    tokenizer_hub = get_text_tokenizer_hub()
-    tokenizer = tokenizer_hub.load("laser2_text_encoder")
+    tokenizer = load_tokenizer("laser2_text_encoder")
 
     encoder = tokenizer.create_encoder()
 
@@ -49,7 +46,7 @@ def test_load_laser2_text() -> None:
         tokenized_sentences = next(iter(pipeline))
 
     embed_sentences = model(
-        tokenized_sentences["seqs"], tokenized_sentences["seq_lens"]
+        tokenized_sentences["seqs"], torch.Tensor(tokenized_sentences["seq_lens"])
     )
     embed_sentences_norm = torch.nn.functional.normalize(embed_sentences)
     actual_sim = torch.matmul(embed_sentences_norm, embed_sentences_norm.T)

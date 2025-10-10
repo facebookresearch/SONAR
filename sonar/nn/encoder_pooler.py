@@ -5,16 +5,15 @@
 # LICENSE file in the root directory of this source tree.
 
 from abc import abstractmethod
-from typing import Optional
 
 import torch
-from fairseq2.models.transformer import TransformerFrontend
+from fairseq2.device import Device
+from fairseq2.models.transformer import TransformerDecoder, TransformerFrontend
 from fairseq2.nn import Linear
-from fairseq2.nn.padding import PaddingMask
-from fairseq2.nn.transformer import TransformerDecoder
-from fairseq2.typing import Device, override
+from fairseq2.nn.batch_layout import BatchLayout
 from torch import Tensor
 from torch.nn import Module
+from typing_extensions import override
 
 
 class EncoderOutputPooler(Module):
@@ -22,9 +21,7 @@ class EncoderOutputPooler(Module):
 
     @abstractmethod
     def __call__(
-        self,
-        encoder_output: Tensor,
-        encoder_padding_mask: Optional[PaddingMask],
+        self, encoder_output: Tensor, encoder_output_layout: BatchLayout | None
     ) -> Tensor:
         """Apply pooling on encoder_output
 
@@ -33,10 +30,6 @@ class EncoderOutputPooler(Module):
             :math:`(N,S_{enc},M)`, where :math:`N` is the batch size,
             :math:`S_{enc}` is the encoder output sequence length, and :math:`M`
             is the dimensionality of the model.
-        :param encoder_padding_mask:
-            The float padding mask of ``encoder_output``. *Shape:*
-            :math:`(N,S_{enc})`, where :math:`N` is the batch size and
-            :math:`S_{enc}` is the encoder output sequence length.
 
         :returns:
         The pooler output. *Shape:* :math:`(N,M)`, where :math:`N` is the
@@ -68,16 +61,17 @@ class AttentionEncoderOutputPooler(EncoderOutputPooler):
 
     @override
     def __call__(
-        self,
-        encoder_output: Tensor,
-        encoder_padding_mask: Optional[PaddingMask],
+        self, encoder_output: Tensor, encoder_output_layout: BatchLayout | None
     ) -> Tensor:
         seqs = self._get_pooling_tokens(encoder_output.shape[0], encoder_output.device)
+        seqs_layout = BatchLayout.of(seqs)
+        if encoder_output_layout is None:
+            encoder_output_layout = BatchLayout.of(encoder_output)
 
-        seqs, padding_mask = self.decoder_frontend(seqs, None)
+        seqs, seqs_layout = self.decoder_frontend(seqs, seqs_layout)
 
-        decoder_out, _ = self.decoder(
-            seqs, padding_mask, encoder_output, encoder_padding_mask
+        decoder_out = self.decoder(
+            seqs, seqs_layout, encoder_output, encoder_output_layout
         )
 
         return self.projection_out(decoder_out).squeeze(1)

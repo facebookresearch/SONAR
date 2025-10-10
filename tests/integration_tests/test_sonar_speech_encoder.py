@@ -7,7 +7,7 @@
 from pathlib import Path
 
 import torch
-from fairseq2.data.text.tokenizers import get_text_tokenizer_hub
+from fairseq2.models.nllb.hub import get_nllb_tokenizer_hub
 from torch.testing import assert_close
 
 from sonar.inference_pipelines import (
@@ -25,14 +25,15 @@ DATA_DIR = Path(__file__).parent.joinpath("data")
 
 class TestSonarTextClass:
     encoder_hub = get_sonar_speech_encoder_hub()
-    encoder = encoder_hub.load("sonar_speech_encoder_eng", device=DEVICE)
+    encoder = encoder_hub.load_model("sonar_speech_encoder_eng", device=DEVICE)
     encoder.eval()
-
-    tokenizer_hub = get_text_tokenizer_hub()
-    tokenizer = tokenizer_hub.load("text_sonar_basic_encoder")
+    # from sonar import setup_logging_here
+    # setup_logging_here()
+    tokenizer_hub = get_nllb_tokenizer_hub()
+    tokenizer = tokenizer_hub.load_tokenizer("text_sonar_basic_encoder")
 
     decoder_hub = get_sonar_text_decoder_hub()
-    decoder = decoder_hub.load("text_sonar_basic_decoder", device=DEVICE)
+    decoder = decoder_hub.load_model("text_sonar_basic_decoder", device=DEVICE)
     decoder.eval()
 
     params = SpeechInferenceParams(

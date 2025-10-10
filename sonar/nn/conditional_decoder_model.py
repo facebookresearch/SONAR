@@ -8,27 +8,30 @@ This module defines a conditional decoder model, which serves as a base for a SO
 Fairseq2 does not have a suitable model, because:
     - fairseq2.models.transformer.model.TransformerModel imperatively includes a transformer encoder.
     - fairseq2.models.decoder.DecoderModel does not expect any additional inputs.
-ConditionalTransformerDecoderModel inherits from EncoderDecoderModel, so it is a sibling class to TransformerModel.
+ConditionalTransformerDecoderModel inherits from Seq2SeqModel, so it is a sibling class to TransformerModel.
+
+After fs2:v0.5 upgrade:
+ConditionalTransformerDecoderModel inherited from EncoderDecoderModel (removed from fs2) and is replaced by Seq2Seq.
+This is unconventional as a Seq2Seq model holds both encoder and decoder, while this is only the decoder implementation.
+A custom solution might be required (similar to the encoder in sonar/models/encoder_model.py).
 """
 
-from typing import Optional, Tuple
+from typing import Optional
 
-from fairseq2.data import VocabularyInfo
-from fairseq2.models.encoder_decoder import EncoderDecoderModel
-from fairseq2.models.sequence import SequenceModelOutput
-from fairseq2.models.transformer import TransformerFrontend
-from fairseq2.nn import IncrementalStateBag, Projection
-from fairseq2.nn.padding import PaddingMask
-from fairseq2.nn.transformer import TransformerDecoder
+import torch
+from fairseq2.models.seq2seq import Seq2SeqModel
+from fairseq2.models.transformer import TransformerDecoder, TransformerFrontend
+from fairseq2.nn import BatchLayout, IncrementalStateBag, Projection
 from torch import Tensor
 
 
-class ConditionalTransformerDecoderModel(EncoderDecoderModel):
+class ConditionalTransformerDecoderModel(Seq2SeqModel):
     """Represents a Transformer-based decoder model conditional on the inputs from the encoder."""
 
     decoder_frontend: TransformerFrontend
     decoder: TransformerDecoder
     final_proj: Projection
+    post_sentemb_proj: Projection | None
 
     def __init__(
         self,
@@ -36,7 +39,8 @@ class ConditionalTransformerDecoderModel(EncoderDecoderModel):
         decoder: TransformerDecoder,
         final_proj: Projection,
         max_target_seq_len: int,
-        target_vocab_info: VocabularyInfo,
+        normalize_emb: bool = False,
+        post_sentemb_proj: Projection | None = None,
     ) -> None:
         """
         :param decoder_frontend:
@@ -47,48 +51,81 @@ class ConditionalTransformerDecoderModel(EncoderDecoderModel):
             The projection to apply to decoder outputs.
         :param max_target_seq_len:
             The maximum length of sequences produced by the model.
-        :param target_vocab_info:
-            The vocabulary information of sequences produced by the model.
+        :param normalize_emb:
+            Whether to normalize the embedding before passing it to the decoder.
+        :param post_sentemb_proj:
+            The projection to apply to the sentence embedding.
         """
-        super().__init__(decoder.model_dim, max_target_seq_len, target_vocab_info)
-
+        super().__init__(max_source_seq_len=0, max_target_seq_len=max_target_seq_len)
+        # NOTE: max_source_seq_len = 0 is a workaround due to Seq2Seq requiring *both* an encoder/decoder model and this is the wrong subclass
         self.decoder_frontend = decoder_frontend
         self.decoder = decoder
-
+        self.post_sentemb_proj = post_sentemb_proj
+        self.normalize_emb = normalize_emb
         self.final_proj = final_proj
 
-    def encode(
-        self, seqs: Tensor, padding_mask: Optional[PaddingMask]
-    ) -> Tuple[Tensor, Optional[PaddingMask]]:
+    def encode(self, seqs: Tensor, seqs_layout: BatchLayout) -> Tensor:
         """The encoding just returns the inputs as is."""
-        return seqs, padding_mask
+        if self.normalize_emb:
+            if seqs.dtype != torch.float32:
+                original_dtype = seqs.dtype
+                norm = torch.norm(seqs.float(), dim=-1, keepdim=True)
+                norm = torch.clamp(norm, min=1e-6)
+                seqs = seqs / norm.to(original_dtype)
+            else:
+                seqs = seqs / seqs.norm(dim=-1, keepdim=True)
+        return seqs
 
     def decode(
         self,
         seqs: Tensor,
-        padding_mask: Optional[PaddingMask],
+        seqs_layout: BatchLayout,
         encoder_output: Tensor,
-        encoder_padding_mask: Optional[PaddingMask],
+        encoder_output_layout: BatchLayout,
         *,
         state_bag: Optional[IncrementalStateBag] = None,
-    ) -> Tuple[Tensor, Optional[PaddingMask]]:
+    ) -> Tensor:
         """Decoding is exactly the same as with fairseq2 TransformerModel"""
-        seqs, padding_mask = self.decoder_frontend(
-            seqs, padding_mask, state_bag=state_bag
+        seqs, seqs_layout = self.decoder_frontend(
+            seqs, seqs_layout, state_bag=state_bag
         )
+
+        if self.post_sentemb_proj is not None:
+            encoder_output = self.post_sentemb_proj(encoder_output)
 
         return self.decoder(  # type: ignore[no-any-return]
             seqs,
-            padding_mask,
+            seqs_layout,
             encoder_output,
-            encoder_padding_mask,
+            encoder_output_layout,
             state_bag=state_bag,
         )
 
-    def project(
-        self, decoder_output: Tensor, decoder_padding_mask: Optional[PaddingMask]
-    ) -> SequenceModelOutput:
+    def project(self, decoder_output: Tensor) -> Tensor:
         """Projection is exactly the same as with fairseq2 TransformerModel"""
-        logits = self.final_proj(decoder_output)
+        return self.final_proj(decoder_output)
 
-        return SequenceModelOutput(logits, pad_idx=self.target_vocab_info.pad_idx)
+    def forward(  # type: ignore
+        self,
+        source_seqs: Tensor,
+        source_seqs_layout: BatchLayout,
+        target_seqs: Tensor,
+        target_seqs_layout: BatchLayout,
+        *,
+        state_bag: IncrementalStateBag | None = None,
+    ) -> Tensor:
+        """Reference implementation from fs2:v0.4.3 EncoderDecoderModel using BatchLayout
+        The decoder frontend is not used here, c.f. https://github.com/facebookresearch/fairseq2/blob/v0.4.3/src/fairseq2/models/encoder_decoder.py#L42
+
+        Reasoning behind the API change from Seq2SeqBatch to more flat types to help torch.compile to trace
+        """
+        encoder_output = self.encode(source_seqs, source_seqs_layout)
+
+        decoder_output = self.decode(
+            target_seqs,
+            target_seqs_layout,
+            encoder_output,
+            source_seqs_layout,  # encoder does not change padding if it existed and needs to be forwarded
+        )
+
+        return self.project(decoder_output)

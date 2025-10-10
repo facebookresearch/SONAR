@@ -4,60 +4,31 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, cast, final
+from typing import Any, Dict, cast
 
 import torch
-from fairseq2.models import AbstractModelHandler
-from fairseq2.models.utils.checkpoint import convert_fairseq_checkpoint
-from torch.nn import Module
-from typing_extensions import override
+from fairseq2.models.utils.checkpoint import convert_fairseq_state_dict
 
 from sonar.models.sonar_text.config import (
     SonarTextDecoderConfig,
     SonarTextEncoderConfig,
 )
-from sonar.models.sonar_text.factory import (
-    SonarTextDecoderFactory,
-    SonarTextEncoderFactory,
-)
-from sonar.models.sonar_text.model import SonarTextTransformerEncoderModel
-from sonar.nn.conditional_decoder_model import ConditionalTransformerDecoderModel
 
 
-@final
-class SonarTextEncoderHandler(AbstractModelHandler):
-    @override
-    @property
-    def family(self) -> str:
-        return "transformer_encoder"
+def _convert_sonar_text_encoder_checkpoint(
+    state_dict: Dict[str, Any], config: SonarTextEncoderConfig
+) -> Dict[str, Any]:
+    # fairseq2 does not use a top-level "model" keyword anymore (v0.5+)
+    try:
+        state_dict = cast(dict[str, object], state_dict["model"])
+    except KeyError:
+        pass
 
-    @override
-    @property
-    def kls(self) -> type[Module]:
-        return SonarTextTransformerEncoderModel
-
-    @override
-    def _create_model(self, config: object) -> Module:
-        config = cast(SonarTextEncoderConfig, config)
-
-        return SonarTextEncoderFactory(config).create_model()
-
-    @override
-    def _convert_checkpoint(
-        self, checkpoint: dict[str, object], config: object
-    ) -> dict[str, object]:
-        return convert_sonar_text_encoder_checkpoint(checkpoint)
-
-
-def convert_sonar_text_encoder_checkpoint(checkpoint: dict[str, Any]) -> dict[str, Any]:
     # Return directly if found fairseq2 attribute in state dict
-    if (
-        "model" in checkpoint.keys()
-        and "encoder_frontend.embed.weight" in checkpoint["model"].keys()
-    ):
-        return checkpoint
+    if "encoder_frontend.embed.weight" in state_dict.keys():
+        return state_dict
 
-    state_dict = checkpoint["state_dict"]
+    state_dict = state_dict["state_dict"]
 
     try:
         del state_dict["version"]
@@ -81,9 +52,9 @@ def convert_sonar_text_encoder_checkpoint(checkpoint: dict[str, Any]) -> dict[st
         # fmt: on
     }
 
-    out_checkpoint = convert_fairseq_checkpoint(out_checkpoint, key_map)
+    out_checkpoint = convert_fairseq_state_dict(out_checkpoint, key_map)  # type: ignore
 
-    embeds = checkpoint["embed_tokens"].weight
+    embeds = state_dict["embed_tokens"].weight
     # # The embedding positions of the control tokens do not match the
     # # SentencePiece model of the tokenizer.
     with torch.inference_mode():
@@ -94,47 +65,28 @@ def convert_sonar_text_encoder_checkpoint(checkpoint: dict[str, Any]) -> dict[st
     return out_checkpoint
 
 
-@final
-class SonarTextDecoderHandler(AbstractModelHandler):
-    @override
-    @property
-    def family(self) -> str:
-        return "transformer_decoder"
+def _convert_sonar_text_decoder_checkpoint(
+    state_dict: dict[str, Any], config: SonarTextDecoderConfig
+) -> dict[str, Any]:
+    # fairseq2 does not use a top-level "model" keyword anymore (v0.5+)
+    try:
+        state_dict = cast(dict[str, object], state_dict["model"])
+    except KeyError:
+        pass
 
-    @override
-    @property
-    def kls(self) -> type[Module]:
-        return ConditionalTransformerDecoderModel
-
-    @override
-    def _create_model(self, config: object) -> Module:
-        config = cast(SonarTextDecoderConfig, config)
-
-        return SonarTextDecoderFactory(config).create_model()
-
-    @override
-    def _convert_checkpoint(
-        self, checkpoint: dict[str, object], config: object
-    ) -> dict[str, object]:
-        return convert_sonar_text_decoder_checkpoint(checkpoint)
-
-
-def convert_sonar_text_decoder_checkpoint(checkpoint: dict[str, Any]) -> dict[str, Any]:
     # Return directly if found fairseq2 attribute in state dict
-    if (
-        "model" in checkpoint.keys()
-        and "decoder_frontend.embed.weight" in checkpoint["model"].keys()
-    ):
-        return checkpoint
+    if "decoder_frontend.embed.weight" in state_dict.keys():
+        return state_dict
 
-    state_dict = checkpoint["state_dict"]
+    # assuming pre fs2:v0.5 formatting with top-level "model" key
+    state_dict = state_dict["state_dict"]
     try:
         del state_dict["version"]
         del state_dict["embed_positions._float_tensor"]
     except:
         pass
 
-    out_checkpoint = {"model": state_dict}
+    out_checkpoint = state_dict
 
     key_map = {
         r"layers\.([0-9]+)\.self_attn\.k_proj\.": r"decoder.layers.\1.self_attn.k_proj.",
@@ -158,15 +110,15 @@ def convert_sonar_text_decoder_checkpoint(checkpoint: dict[str, Any]) -> dict[st
         r"layer_norm.": r"decoder.layer_norm.",
     }
 
-    out_checkpoint = convert_fairseq_checkpoint(out_checkpoint, key_map)
+    out_checkpoint = convert_fairseq_state_dict(out_checkpoint, key_map)
 
     out_checkpoint = cast(dict[str, Any], out_checkpoint)
 
-    embeds = out_checkpoint["model"]["decoder_frontend.embed.weight"]
+    embeds = out_checkpoint["decoder_frontend.embed.weight"]
     # # The embedding positions of the control tokens do not match the
     # # SentencePiece model of the tokenizer.
     with torch.inference_mode():
         # (BOS, PAD, EOS, UNK) -> (PAD, UNK, BOS, EOS)
         embeds[[0, 1, 2, 3]] = embeds[[1, 3, 0, 2]]
-    out_checkpoint["model"]["decoder_frontend.embed.weight"] = embeds
+    out_checkpoint["decoder_frontend.embed.weight"] = embeds
     return out_checkpoint

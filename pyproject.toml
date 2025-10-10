@@ -24,7 +24,9 @@ classifiers=[
 dependencies = [
   # fairseq2 is installed with the cpu deps; if you want a gpu build, you need to install it manually.
   # see https://github.com/facebookresearch/fairseq2
-  "fairseq2~=0.4.0",
+  # we require a relaxed version of fairseq2 so that the users can be flexible with it
+  # (depending on the other dependencies of their project)
+  "fairseq2>=0.5.0",
   "numpy>=1.21",
   "torch",
   "torchaudio",
@@ -42,7 +44,7 @@ dependencies = [
       "pytest-cov>=2.6.1",
       "coverage[toml]>=5.1",
       # Format
-      "black==22.3.0",
+      "black==25.1.0",
       "isort>=5.10.1",
       # Linters
       "mypy>=0.782",
@@ -51,8 +53,8 @@ dependencies = [
 cpu = [
   "torch==2.5.1+cpu",
   "torchaudio==2.5.1+cpu",
-  "fairseq2n~=0.4.0", 
-  "fairseq2~=0.4.0", 
+  "fairseq2n>=0.5.0",
+  "fairseq2>=0.5.0",
 ]
 hg = [
   "transformers>=4.44.0",

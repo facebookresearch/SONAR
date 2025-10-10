@@ -68,5 +68,5 @@ BUT BEWARE, the following speech encoders are released under a non commercial li
 | vie       | vietnamese       | https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.vie.pt |
 | yue       | yue              | https://dl.fbaipublicfiles.com/SONAR/spenc.v5ap.yue.pt |
 
-The SONAR text encoder and decoder, as well as the BLASER 2.0 models, are released under the same non-commercial 
+The SONAR text encoder and decoder, as well as the BLASER 2.0 models, are released under the same non-commercial
 license ([NC_MODEL_LICENSE](NC_MODEL_LICENSE.md)).
