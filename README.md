@@ -46,6 +46,14 @@ pip install --upgrade pip
 pip install -e .
 ```
 
+### Versions
+Unfortunately, SONAR code is very much tied to fairseq2 code, and thus only specific version are compatible with each other:
+- `sonar-space~=0.5.0` (the current version) requires `fairseq2>=0.5.0`
+- `sonar-space~=0.4.0` required `fairseq2~=0.4.0`
+- `sonar-space~=0.2.0` required `fairseq2~=0.2.0`
+
+In the future, when the `fairseq2` interface stabilizes, we hope to keep the version dependencies less loosely coupled. 
+
 
 ## Usage
 fairseq2 will automatically download models into your `$TORCH_HOME/hub` directory upon using the commands below.
@@ -236,6 +244,10 @@ See more complete demo notebooks :
 * [sonar text2text similarity and translation](examples/sonar_text_demo.ipynb)
 * [sonar speech2text and other data pipeline examples](examples/inference_pipelines.ipynb)
 * [sonar bilingual document alignment with sonar text similarity](examples/bilingual_document.ipynb)
+
+### Troubleshooting
+
+- In case of errors like `fairseq2.assets.card.AssetCardError: Model checkpoint of the blaser_2_0_qe asset card cannot be loaded`, try removing the fairseq2 assets cache (located in `~/.cache/fairseq2`); it might be that some of the downloaded model checkpoints are invalid.
 
 
 ## Supported languages and download links

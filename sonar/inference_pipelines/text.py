@@ -127,13 +127,13 @@ class TextToTextModelPipeline(torch.nn.Module):
         model_max_seq_len = cast(
             int | None,
             (
-                self.model.decoder.decoder_frontend.pos_encoder.max_seq_len
+                self.model.decoder.decoder_frontend.pos_encoder.max_seq_len  # type: ignore
                 if self.model.decoder.decoder_frontend.pos_encoder is not None
                 else self.model.decoder.decoder.layers[
                     0
                 ].self_attn.pos_encoder.max_seq_len
             ),
-        )  # type: ignore[union-attr]
+        )
         if model_max_seq_len is None:
             model_max_seq_len = generator_kwargs.get("max_seq_len", model_max_seq_len)
 
@@ -239,11 +239,11 @@ class TextToEmbeddingModelPipeline(torch.nn.Module):
         model_max_len = cast(
             int | None,
             (
-                self.model.encoder_frontend.pos_encoder.max_seq_len
-                if self.model.encoder_frontend.pos_encoder is not None
-                else self.model.encoder.layers[0].self_attn.pos_encoder.max_seq_len
+                self.model.encoder_frontend.pos_encoder.max_seq_len  # type: ignore
+                if self.model.encoder_frontend.pos_encoder is not None  # type: ignore
+                else self.model.encoder.layers[0].self_attn.pos_encoder.max_seq_len  # type: ignore
             ),
-        )  # type: ignore
+        )
         if max_seq_len is None:
             max_seq_len = model_max_len
         if max_seq_len is not None and model_max_len is not None:
