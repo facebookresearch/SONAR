@@ -26,7 +26,8 @@ dependencies = [
   # see https://github.com/facebookresearch/fairseq2
   # we require a relaxed version of fairseq2 so that the users can be flexible with it
   # (depending on the other dependencies of their project)
-  "fairseq2>=0.5.0",
+  "fairseq2>=0.5.2",
+  # "mpmath==1.3.0", # I am not sure if we need it
   "numpy>=1.21",
   "torch",
   "torchaudio",
@@ -49,6 +50,8 @@ dependencies = [
       # Linters
       "mypy>=0.782",
       "pylint>=2.8.0",
+      "flake8",
+      "types-tqdm"
   ]
 cpu = [
   "torch==2.5.1+cpu",

@@ -37,7 +37,7 @@ pip install fairseq2 --extra-index-url https://fair.pkg.atmeta.com/fairseq2/whl/
 ```
 If [fairseq2](https://github.com/facebookresearch/fairseq2) does not provide a build for your machine, check the readme of that project to build it locally.
 
-We recommend installing SONAR only after you have a correct version of `fairseq2` installed.  Note that SONAR currently relies on the stable version of `fairseq2>=0.5.0` (with minor variations possible).
+We recommend installing SONAR only after you have a correct version of `fairseq2` installed.  Note that SONAR currently relies on the stable version of `fairseq2>=0.5.2` (with minor variations possible).
 
 If you want to install SONAR manually, you can install it localy:
 

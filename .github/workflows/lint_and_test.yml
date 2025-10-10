@@ -28,8 +28,7 @@ jobs:
         run: |
           sudo apt-get install libsndfile1
           python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
-          pip install -e .
+          pip install -e ".[dev]"
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
@@ -58,9 +57,7 @@ jobs:
         run: |
           sudo apt-get install libsndfile1
           python -m pip install --upgrade pip
-          pip install --extra-index-url https://fair.pkg.atmeta.com/fairseq2/whl/pt2.5.1/cpu -r requirements.txt
-          pip install -r requirements-dev.txt
-          pip install -e .
+          pip install -e --extra-index-url https://fair.pkg.atmeta.com/fairseq2/whl/pt2.5.1/cpu ".[dev]"
       - name: mypy
         run: mypy --install-types --non-interactive ./ --cache-dir=.mypy_cache/
 
@@ -81,8 +78,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get install libsndfile1
-          pip install -r requirements-dev.txt
-          pip install -e .
+          pip install -e ".[dev]"
       - name: pytest_unit
         run: pytest -s -v tests/unit_tests/
 
@@ -104,8 +100,7 @@ jobs:
         run: |
           sudo apt-get install libsndfile1
           python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
-          pip install -e .
+          pip install -e ".[dev]"
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         with:
