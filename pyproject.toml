@@ -54,8 +54,8 @@ dependencies = [
       "types-tqdm"
   ]
 cpu = [
-  "torch==2.5.1+cpu",
-  "torchaudio==2.5.1+cpu",
+  "torch==2.6.0+cpu",
+  "torchaudio==2.6.0+cpu",
   "fairseq2n>=0.5.2",
   "fairseq2>=0.5.2",
 ]

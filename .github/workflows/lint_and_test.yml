@@ -57,7 +57,7 @@ jobs:
         run: |
           sudo apt-get install libsndfile1
           python -m pip install --upgrade pip
-          pip install -e --extra-index-url https://fair.pkg.atmeta.com/fairseq2/whl/pt2.5.1/cpu ".[dev]"
+          pip install -e  ".[dev]" --extra-index-url https://fair.pkg.atmeta.com/fairseq2/whl/pt2.6.0/cpu
       - name: mypy
         run: mypy --install-types --non-interactive ./ --cache-dir=.mypy_cache/
 
