@@ -6,9 +6,10 @@
 
 from pathlib import Path
 
+import numpy as np
 import pytest
 import torch
-import torchaudio  # type: ignore[import]
+from scipy.io import wavfile
 
 from sonar.inference_pipelines.speech import SpeechToEmbeddingModelPipeline
 
@@ -39,9 +40,10 @@ def test_speech_embedding_with_waveform_input(encoder):
 
 # Parsing audio within sonar does not support fp16 audio decoding yet
 def test_speech_embedding_pipeline_with_audio_files(tmp_path: Path, encoder):
-    print(torchaudio.list_audio_backends())
     fake_audio = torch.rand(1, 175920)
     audio_file = tmp_path / "audio.wav"
-    torchaudio.save(audio_file, fake_audio, 16000)
+    # Use scipy for WAV file writing (torchaudio I/O removed in 2.9+)
+    audio_numpy = fake_audio.squeeze().numpy()
+    wavfile.write(str(audio_file), 16000, (audio_numpy * 32767).astype(np.int16))
     embedding = encoder.predict([str(audio_file.resolve())])
     assert embedding.shape == torch.Size([1, 1024])
