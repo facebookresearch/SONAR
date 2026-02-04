@@ -6,8 +6,9 @@
 
 from pathlib import Path
 
+import numpy as np
 import torch
-import torchaudio  # type: ignore
+from scipy.io import wavfile
 from torch.testing import assert_close  # type: ignore
 
 from sonar.inference_pipelines.speech import (
@@ -21,8 +22,11 @@ AUDIO_Paths = [
     str(DATA_DIR.joinpath("audio_files/audio_2.wav")),
 ]
 
-WAV, sr = torchaudio.load(AUDIO_Paths[0])
+# Use scipy for WAV file reading (torchaudio I/O removed in 2.9+)
+sr, audio_numpy = wavfile.read(AUDIO_Paths[0])
 assert sr == 16000, "Sample rate should be 16kHz"
+# Convert int16 to float32 and add channel dimension
+WAV = torch.from_numpy(audio_numpy.astype(np.float32) / 32767.0).unsqueeze(0)
 
 
 def test_speech_to_embedding_model_pipeline():
